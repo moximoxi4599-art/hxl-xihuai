@@ -149,26 +149,16 @@ body { background:#000; overflow:hidden; }
         </a-torus>
       </a-entity>
 
-      <!-- ── HUD SUBTITLE PANEL ── -->
+      <!-- ── HUD SUBTITLE PANEL ──
+           Single plane with a CanvasTexture painted at runtime.
+           This avoids A-Frame <a-text>'s reliance on the Roboto MSDF
+           font loaded from cdn.aframe.io, which silently fails to
+           upload in Quest's immersive XR session and leaves the
+           subtitle panel empty. Canvas-based text always renders. -->
       <a-entity id="hud" position="0 -0.35 -1.5" visible="false">
-        <!-- Background panel -->
-        <a-plane id="hud-bg" width="1.6" height="0.44"
-          material="shader:flat; color:#06001a; transparent:true; opacity:0.88">
+        <a-plane id="hud-plane" width="1.6" height="0.44"
+          material="shader:flat; color:#ffffff; transparent:true; opacity:1; side:double">
         </a-plane>
-        <!-- Left accent bar (changes color per speaker) -->
-        <a-plane id="hud-bar" width="0.018" height="0.44" position="-0.79 0 0.002"
-          material="shader:flat; color:#8833ff; transparent:true; opacity:0.9">
-        </a-plane>
-        <!-- Speaker label -->
-        <a-text id="hud-speaker" value="Guardian" color="#cc88ff"
-          position="-0.74 0.13 0.003" width="0.6" align="left"
-          letter-spacing="2">
-        </a-text>
-        <!-- Dialogue text -->
-        <a-text id="hud-text" value="" color="#e8ddff"
-          position="-0.74 -0.03 0.003" width="1.4"
-          wrap-count="40" line-height="42" align="left">
-        </a-text>
       </a-entity>
 
     </a-camera>
@@ -620,10 +610,7 @@ function cacheDOM() {
   D.scene    = document.getElementById('scene');
   D.cam      = document.getElementById('cam');
   D.hud      = document.getElementById('hud');
-  D.hudBg    = document.getElementById('hud-bg');
-  D.hudBar   = document.getElementById('hud-bar');
-  D.hudSpkr  = document.getElementById('hud-speaker');
-  D.hudTxt   = document.getElementById('hud-text');
+  D.hudPlane = document.getElementById('hud-plane');
   D.gazeArc  = document.getElementById('gaze-arc');
   D.guardian = document.getElementById('guardian');
   D.wanderer = document.getElementById('wanderer');
@@ -648,12 +635,31 @@ function enterAR() {
   D.counter.style.display = 'block';
   D.hint.textContent = 'Entering experience…';
 
+  // Build the canvas-backed subtitle texture before any dialogue runs.
+  initHudCanvas();
+
+  // Force the WebGL canvas to clear transparent IMMEDIATELY, before
+  // the XR session starts. If we wait for 'enter-ar' the first frame
+  // can paint opaque black over the passthrough.
+  try {
+    if (D.scene.renderer) {
+      D.scene.renderer.setClearColor(new THREE.Color(0, 0, 0), 0);
+      D.scene.renderer.setClearAlpha(0);
+    }
+  } catch(e) {}
+
   // ── Enter-XR event handlers ───────────────────
-  function onEnterXR() {
-    window._arMode = true;
-    // Force WebGL canvas to clear to fully transparent so Quest shows passthrough
-    try { D.scene.renderer.setClearColor(new THREE.Color(0, 0, 0), 0); } catch(e) {}
-    D.hint.textContent = 'Light is seeping through the shelves…';
+  function onEnterXR(evt) {
+    window._arMode = (evt.type === 'enter-ar');
+    // Re-force transparency once XR session is active — A-Frame can
+    // reset clearAlpha during session setup on some builds.
+    try {
+      D.scene.renderer.setClearColor(new THREE.Color(0, 0, 0), 0);
+      D.scene.renderer.setClearAlpha(0);
+    } catch(e) {}
+    D.hint.textContent = window._arMode
+      ? 'Light is seeping through the shelves…'
+      : 'VR mode (no passthrough)';
   }
   D.scene.addEventListener('enter-ar', onEnterXR, { once: true });
   D.scene.addEventListener('enter-vr', onEnterXR, { once: true });
@@ -669,27 +675,37 @@ function enterAR() {
   // No WebXR at all → desktop preview
   if (!navigator.xr) { enableDesktopMode(); return; }
 
-  // CRITICAL: enterAR() / enterVR() must be called DIRECTLY from the
-  // click handler with NO await/Promise before it, or the browser drops
-  // the user-gesture token and silently refuses the session request.
-  // A-Frame's enterAR() calls navigator.xr.requestSession('immersive-ar')
-  // internally, so we hand control to A-Frame here and just catch errors.
-  // The whole block is wrapped in try/catch so a synchronous throw
-  // (e.g. older A-Frame with no enterAR) cannot abort the rest of
-  // setup — startExperience() is already scheduled above and must run.
+  // CRITICAL: enterAR() must be called DIRECTLY from the click handler
+  // with NO await/Promise before it, or the browser drops the
+  // user-gesture token and silently refuses the session request.
   try {
     const arEntry = typeof D.scene.enterAR === 'function'
-      ? D.scene.enterAR()   // A-Frame 1.4+ – requests immersive-ar session
-      : D.scene.enterVR();  // older A-Frame fallback
+      ? D.scene.enterAR()                 // A-Frame 1.4+ — immersive-ar
+      : null;
 
-    if (arEntry && typeof arEntry.catch === 'function') {
-      arEntry.catch(arErr => {
-        console.warn('AR entry failed:', arErr);
-        D.hint.textContent = 'AR unavailable — switching to preview…';
-        D.scene.enterVR().catch(() => enableDesktopMode());
-      });
+    if (arEntry && typeof arEntry.then === 'function') {
+      arEntry
+        .then(() => {
+          // Belt and braces — set transparent again post-entry.
+          try {
+            D.scene.renderer.setClearColor(new THREE.Color(0, 0, 0), 0);
+            D.scene.renderer.setClearAlpha(0);
+          } catch(e) {}
+        })
+        .catch(arErr => {
+          console.warn('AR entry failed:', arErr);
+          // IMPORTANT: do NOT fall back to enterVR() here. On Quest,
+          // immersive-vr has NO passthrough, so the user just sees
+          // the two characters floating in a black void — which is
+          // exactly the bug we're fixing. Desktop preview is more
+          // useful as a graceful failure state, and it tells the
+          // user clearly that AR didn't start.
+          D.hint.textContent =
+            'AR unavailable on this browser — using preview mode';
+          enableDesktopMode();
+        });
     } else {
-      // Non-Promise return → likely already failed, fall back.
+      // enterAR isn't a function (very old A-Frame) → preview only.
       enableDesktopMode();
     }
   } catch (err) {
@@ -942,18 +958,123 @@ function resetGazeRing(idx) {
 }
 
 // ────────────────────────────────────────────────
-// DIALOGUE / HUD
+// DIALOGUE / HUD — canvas-textured subtitle panel
 // ────────────────────────────────────────────────
+//
+// We paint the entire subtitle (background + accent bar + speaker
+// name + dialogue text) into an offscreen 2D canvas, then upload
+// that canvas as a THREE.CanvasTexture onto the #hud-plane mesh.
+//
+// Why not <a-text>? A-Frame's text component fetches a Roboto MSDF
+// JSON+PNG from cdn.aframe.io. In Quest's immersive XR session this
+// fetch sometimes never completes (or the texture upload silently
+// fails), leaving the subtitle panel rendered but with NO visible
+// glyphs. CanvasTexture has no async font dependency — once the 2D
+// context paints, the next frame uploads the new pixels. Reliable.
+//
+let dlgCanvas, dlgCtx, dlgTexture;
+let _hudMaterialApplied = false;
+
+function initHudCanvas() {
+  dlgCanvas = document.createElement('canvas');
+  dlgCanvas.width  = 1600;   // matches plane aspect 1.6 / 0.44 ≈ 3.64
+  dlgCanvas.height = 440;
+  dlgCtx = dlgCanvas.getContext('2d');
+  dlgCtx.clearRect(0, 0, dlgCanvas.width, dlgCanvas.height);
+
+  dlgTexture = new THREE.CanvasTexture(dlgCanvas);
+  if ('SRGBColorSpace' in THREE) {
+    dlgTexture.colorSpace = THREE.SRGBColorSpace;   // r152+ colour mgmt
+  } else if ('sRGBEncoding' in THREE) {
+    dlgTexture.encoding = THREE.sRGBEncoding;       // older three.js
+  }
+  dlgTexture.minFilter = THREE.LinearFilter;
+  dlgTexture.magFilter = THREE.LinearFilter;
+  dlgTexture.needsUpdate = true;
+
+  applyHudMaterial();
+}
+
+function applyHudMaterial() {
+  if (_hudMaterialApplied) return;
+  const plane = D.hudPlane;
+  if (!plane) return;
+  const mesh = plane.getObject3D('mesh');
+  if (!mesh) {
+    // Mesh not built yet — try again on the next frame / loaded event.
+    plane.addEventListener('loaded', applyHudMaterial, { once: true });
+    setTimeout(applyHudMaterial, 80);
+    return;
+  }
+  mesh.material = new THREE.MeshBasicMaterial({
+    map: dlgTexture,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false
+  });
+  _hudMaterialApplied = true;
+}
+
+function drawDialog(name, text, isG) {
+  const W = dlgCanvas.width, H = dlgCanvas.height;
+  const ctx = dlgCtx;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background panel — dark purple, mostly opaque
+  ctx.fillStyle = 'rgba(6, 0, 26, 0.92)';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle inner border for definition
+  ctx.strokeStyle = 'rgba(120, 80, 200, 0.28)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(8, 8, W - 16, H - 16);
+
+  // Left accent bar — colour per speaker
+  const barColor = isG ? '#9922ff' : '#2255ff';
+  ctx.fillStyle = barColor;
+  ctx.fillRect(0, 0, 24, H);
+
+  // Soft glow falling off to the right of the bar
+  const glow = ctx.createLinearGradient(24, 0, 110, 0);
+  glow.addColorStop(0, isG ? 'rgba(153, 34, 255, 0.45)'
+                           : 'rgba(34, 85, 255, 0.45)');
+  glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(24, 0, 90, H);
+
+  // Speaker name
+  ctx.font = 'bold 46px Georgia, "Times New Roman", serif';
+  ctx.fillStyle = isG ? '#cc88ff' : '#88bbff';
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+  ctx.fillText(name, 70, 36);
+
+  // Underline beneath speaker name
+  ctx.fillStyle = isG ? 'rgba(204, 136, 255, 0.45)'
+                      : 'rgba(136, 187, 255, 0.45)';
+  ctx.fillRect(70, 96, 220, 2);
+
+  // Dialogue text — supports \n line breaks already in SCRIPT
+  ctx.font = '40px Georgia, "Times New Roman", serif';
+  ctx.fillStyle = '#e8ddff';
+  const lines = text.split('\n');
+  let y = 140;
+  for (const line of lines) {
+    ctx.fillText(line, 70, y);
+    y += 60;
+  }
+
+  dlgTexture.needsUpdate = true;
+  // In case material wasn't ready at init, try again now.
+  if (!_hudMaterialApplied) applyHudMaterial();
+}
+
 function playLine(line) {
   return new Promise(resolve => {
     const isG = line.spkr === 'g';
-
-    D.hudBar.setAttribute('material',
-      isG ? 'color:#9922ff; shader:flat; transparent:true; opacity:0.9'
-          : 'color:#2255ff; shader:flat; transparent:true; opacity:0.9');
-    D.hudSpkr.setAttribute('color', isG ? '#cc88ff' : '#88bbff');
-    D.hudSpkr.setAttribute('value', line.name || (isG ? 'Guardian':'Wanderer'));
-    D.hudTxt.setAttribute('value', line.txt);
+    const name = line.name || (isG ? 'Guardian' : 'Wanderer');
+    drawDialog(name, line.txt, isG);
     D.hud.setAttribute('visible', true);
 
     const dur = line.dur || Math.max(3500, line.txt.length * 95);
