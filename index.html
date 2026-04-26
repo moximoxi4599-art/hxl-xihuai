@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>书架守望者 · Library Guardians AR</title>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; overflow:hidden; }
+
+/* ─── Landing Overlay ─── */
+#overlay {
+  position:fixed; inset:0; z-index:999;
+  background: radial-gradient(ellipse at 40% 50%, #120026 0%, #05000f 60%, #000 100%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-family: 'Georgia', serif;
+}
+.star { position:absolute; border-radius:50%; background:#fff; pointer-events:none; }
+#overlay h1 {
+  font-size:2.4em; letter-spacing:0.15em; margin-bottom:10px;
+  background: linear-gradient(135deg, #cc88ff, #ffffff, #88bbff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  text-shadow: none; filter: drop-shadow(0 0 20px #8844ff88);
+}
+#overlay .sub {
+  color:#7766aa; font-size:0.85em; letter-spacing:0.3em;
+  margin-bottom:40px; text-transform:uppercase;
+}
+#overlay .instructions {
+  color:#665588; font-size:0.82em; line-height:2.2;
+  text-align:center; margin-bottom:40px;
+  border:1px solid #331155; padding:18px 30px; border-radius:12px;
+  background:rgba(30,0,50,0.5);
+}
+#overlay .instructions span { color:#aa88dd; }
+#btn {
+  background: linear-gradient(135deg, #3a0075, #7700cc);
+  border: 1.5px solid #bb55ff;
+  color:#fff; font-size:1.05em; letter-spacing:0.2em;
+  padding:16px 44px; border-radius:10px; cursor:pointer;
+  box-shadow: 0 0 40px #6600aa66, inset 0 0 20px #ffffff08;
+  transition: box-shadow 0.3s, transform 0.2s;
+  font-family: 'Georgia', serif;
+}
+#btn:hover { box-shadow: 0 0 60px #9922ffaa; transform:scale(1.03); }
+#btn:active { transform:scale(0.98); }
+
+/* ─── HUD (camera-space subtitle) ─── */
+/* Handled via A-Frame entities below */
+
+/* ─── Debug hint bar ─── */
+#hint {
+  position:fixed; bottom:20px; left:50%;
+  transform:translateX(-50%); white-space:nowrap;
+  background:rgba(0,0,10,0.75); color:#9988cc;
+  border:1px solid #222244; border-radius:20px;
+  padding:8px 20px; font-size:0.78em;
+  z-index:10; pointer-events:none; display:none;
+  font-family: monospace;
+}
+#orb-counter {
+  position:fixed; top:16px; right:16px;
+  background:rgba(0,0,10,0.7); color:#aa88dd;
+  border-radius:12px; padding:6px 14px;
+  font-size:0.75em; font-family:monospace;
+  z-index:10; pointer-events:none; display:none;
+  border:1px solid #333;
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════ LANDING SCREEN ════════════════ -->
+<div id="overlay">
+  <h1>书架守望者</h1>
+  <div class="sub">Library Guardians · AR Experience</div>
+  <div class="instructions">
+    <span>① 站在图书馆书架前 约 1 米处</span><br>
+    <span>② 佩戴好 Meta Quest 3</span><br>
+    <span>③ 在 Quest 浏览器中打开此页面</span><br>
+    <span>④ 点击下方按钮，进入 AR 世界</span>
+  </div>
+  <button id="btn" onclick="enterAR()">✦ 进入体验 ✦</button>
+</div>
+
+<div id="hint"></div>
+<div id="orb-counter">🟣 0/3 &nbsp;&nbsp; 🔵 0/3</div>
+
+<!-- ════════════════ A-FRAME SCENE ════════════════ -->
+<a-scene
+  id="scene"
+  webxr="requiredFeatures: local-floor; optionalFeatures: hand-tracking, bounded-floor"
+  renderer="antialias:true; alpha:true; colorManagement:true"
+  vr-mode-ui="enabled:false"
+  background="color:transparent">
+
+  <a-assets timeout="3000"></a-assets>
+
+  <!-- ── CAMERA RIG ── -->
+  <a-entity id="rig">
+    <a-camera id="cam"
+      look-controls="pointerLockEnabled:false"
+      wasd-controls="enabled:false"
+      position="0 1.6 0">
+
+      <!-- Gaze cursor (center dot + progress arc) -->
+      <a-entity id="gaze-cursor" position="0 0 -1.8">
+        <a-ring color="#ffffff" radius-inner="0.014" radius-outer="0.018"
+          material="shader:flat; opacity:0.45; color:#ffffff">
+        </a-ring>
+        <a-torus id="gaze-arc" radius="0.026" radius-tubular="0.004"
+          theta-length="0" color="#88ccff"
+          material="shader:flat; emissive:#66aaff; emissiveIntensity:2; transparent:true; opacity:0; color:#88ccff"
+          rotation="0 0 90">
+        </a-torus>
+      </a-entity>
+
+      <!-- ── HUD SUBTITLE PANEL ── -->
+      <!-- Positioned 1.5m in front, 0.35m below center -->
+      <a-entity id="hud" position="0 -0.35 -1.5" visible="false">
+        <!-- Background panel -->
+        <a-plane id="hud-bg" width="1.6" height="0.44"
+          material="shader:flat; color:#06001a; transparent:true; opacity:0.88">
+        </a-plane>
+        <!-- Left accent bar (changes color per speaker) -->
+        <a-plane id="hud-bar" width="0.018" height="0.44" position="-0.79 0 0.002"
+          material="shader:flat; color:#8833ff; transparent:true; opacity:0.9">
+        </a-plane>
+        <!-- Speaker label -->
+        <a-text id="hud-speaker" value="守者" color="#cc88ff"
+          position="-0.74 0.13 0.003" width="0.5" font="roboto" align="left"
+          letter-spacing="1">
+        </a-text>
+        <!-- Dialogue text -->
+        <a-text id="hud-text" value="" color="#e8ddff"
+          position="-0.74 -0.03 0.003" width="1.4" font="roboto"
+          wrap-count="32" line-height="38" align="left">
+        </a-text>
+      </a-entity>
+
+    </a-camera>
+
+    <!-- Hand tracking (Quest 3 optional) -->
+    <a-entity hand-tracking-controls="hand:left" id="left-hand"></a-entity>
+    <a-entity hand-tracking-controls="hand:right" id="right-hand"></a-entity>
+  </a-entity>
+
+  <!-- ══════════════════════════════════════════════════
+       WORLD CONTENT
+       All positioned relative to user's start (0,0,0).
+       User is assumed to be standing ~1m from a real bookshelf.
+       Shelf face is at z=-1.0. Content arranged along that plane.
+  ══════════════════════════════════════════════════ -->
+
+  <!-- ── AMBIENT FLOATING MOTES (always visible) ── -->
+  <a-entity id="motes">
+    <!-- Purple motes cluster near shelf left -->
+    <a-sphere position="-0.45 1.5 -1.1" radius="0.009" color="#dd99ff"
+      material="shader:flat; emissive:#cc77ff; emissiveIntensity:2.5; transparent:true; opacity:0.85"
+      animation="property:position; from:-0.45 1.5 -1.1; to:-0.25 1.95 -0.9; dir:alternate; dur:4200; loop:true; easing:easeInOutSine">
+    </a-sphere>
+    <a-sphere position="-0.8 1.7 -1.15" radius="0.007" color="#cc88ff"
+      material="shader:flat; emissive:#bb66ff; emissiveIntensity:2; transparent:true; opacity:0.75"
+      animation="property:position; from:-0.8 1.7 -1.15; to:-0.6 2.2 -1.3; dir:alternate; dur:5100; loop:true; delay:800; easing:easeInOutSine">
+    </a-sphere>
+    <a-sphere position="-0.15 1.3 -1.2" radius="0.006" color="#ee88ff"
+      material="shader:flat; emissive:#dd66ff; emissiveIntensity:2; transparent:true; opacity:0.7"
+      animation="property:position; from:-0.15 1.3 -1.2; to:0.1 1.8 -1.0; dir:alternate; dur:3800; loop:true; delay:1400; easing:easeInOutSine">
+    </a-sphere>
+    <!-- Blue motes cluster right -->
+    <a-sphere position="0.9 1.6 -1.1" radius="0.008" color="#88bbff"
+      material="shader:flat; emissive:#6699ff; emissiveIntensity:2; transparent:true; opacity:0.8"
+      animation="property:position; from:0.9 1.6 -1.1; to:1.1 2.1 -0.95; dir:alternate; dur:4600; loop:true; delay:600; easing:easeInOutSine">
+    </a-sphere>
+    <a-sphere position="1.2 1.2 -1.2" radius="0.006" color="#99ccff"
+      material="shader:flat; emissive:#77aaff; emissiveIntensity:2; transparent:true; opacity:0.7"
+      animation="property:position; from:1.2 1.2 -1.2; to:0.9 1.7 -1.05; dir:alternate; dur:3500; loop:true; delay:1100; easing:easeInOutSine">
+    </a-sphere>
+    <a-sphere position="0.5 2.0 -1.1" radius="0.007" color="#aaddff"
+      material="shader:flat; emissive:#88bbff; emissiveIntensity:2; transparent:true; opacity:0.65"
+      animation="property:position; from:0.5 2.0 -1.1; to:0.7 2.5 -1.3; dir:alternate; dur:5800; loop:true; delay:2000; easing:easeInOutSine">
+    </a-sphere>
+    <!-- Center motes -->
+    <a-sphere position="0.1 1.9 -1.05" radius="0.005" color="#bbaaff"
+      material="shader:flat; emissive:#9988ff; emissiveIntensity:2; transparent:true; opacity:0.6"
+      animation="property:position; from:0.1 1.9 -1.05; to:0.35 2.35 -1.2; dir:alternate; dur:4900; loop:true; delay:1700; easing:easeInOutSine">
+    </a-sphere>
+    <a-sphere position="-0.3 0.95 -1.15" radius="0.006" color="#cc99ff"
+      material="shader:flat; emissive:#bb77ff; emissiveIntensity:2; transparent:true; opacity:0.75"
+      animation="property:position; from:-0.3 0.95 -1.15; to:-0.1 1.4 -0.95; dir:alternate; dur:4300; loop:true; delay:500; easing:easeInOutSine">
+    </a-sphere>
+  </a-entity>
+
+  <!-- ── ACT 1: LIGHT RAYS FROM SHELF GAPS ── -->
+  <a-entity id="rays">
+    <!-- These fade in after ~10s via animation delay -->
+    <a-plane width="0.009" height="1.4" color="#5500ee" position="-0.38 1.45 -0.995"
+      rotation="0 0 4"
+      material="shader:flat; emissive:#5500ee; emissiveIntensity:1.2; transparent:true; opacity:0"
+      animation="property:material.opacity; from:0; to:0.14; dur:5000; delay:10000">
+    </a-plane>
+    <a-plane width="0.007" height="1.0" color="#7711ff" position="0.05 1.2 -0.995"
+      rotation="0 0 -6"
+      material="shader:flat; emissive:#7711ff; emissiveIntensity:1.2; transparent:true; opacity:0"
+      animation="property:material.opacity; from:0; to:0.11; dur:4500; delay:13500">
+    </a-plane>
+    <a-plane width="0.008" height="1.2" color="#4400dd" position="-0.72 1.55 -0.995"
+      rotation="0 0 8"
+      material="shader:flat; emissive:#4400dd; emissiveIntensity:1; transparent:true; opacity:0"
+      animation="property:material.opacity; from:0; to:0.16; dur:6000; delay:16000">
+    </a-plane>
+  </a-entity>
+
+  <!-- ══════════════════════════════════════════════════
+       GUARDIAN 守者 — Purple spirit, appears left of center
+       World position: (-0.55, 0, -1.0)
+  ══════════════════════════════════════════════════ -->
+  <a-entity id="guardian" visible="false" position="-0.55 0 -1.0">
+
+    <!-- Ethereal head -->
+    <a-sphere id="g-head" position="0 1.76 0" radius="0.135"
+      material="shader:flat; emissive:#6611cc; emissiveIntensity:1.3; color:#9933ff; transparent:true; opacity:0.88"
+      animation__pulse="property:material.emissiveIntensity; from:0.9; to:1.7; dir:alternate; dur:2300; loop:true">
+    </a-sphere>
+    <!-- Outer head glow -->
+    <a-sphere position="0 1.76 0" radius="0.24"
+      material="shader:flat; emissive:#9944ff; emissiveIntensity:0.25; color:#9944ff; transparent:true; opacity:0.16"
+      animation="property:scale; from:0.88 0.88 0.88; to:1.14 1.14 1.14; dir:alternate; dur:2700; loop:true">
+    </a-sphere>
+    <!-- Body torso -->
+    <a-cylinder position="0 1.28 0" radius="0.092" height="0.65"
+      material="shader:flat; emissive:#4d0fbf; emissiveIntensity:0.85; color:#6622dd; transparent:true; opacity:0.78">
+    </a-cylinder>
+    <!-- Left arm -->
+    <a-cylinder position="-0.21 1.4 0" radius="0.042" height="0.44" rotation="0 0 24"
+      material="shader:flat; emissive:#5511bb; emissiveIntensity:0.75; color:#6622cc; transparent:true; opacity:0.68">
+    </a-cylinder>
+    <!-- Right arm -->
+    <a-cylinder position="0.21 1.4 0" radius="0.042" height="0.44" rotation="0 0 -24"
+      material="shader:flat; emissive:#5511bb; emissiveIntensity:0.75; color:#6622cc; transparent:true; opacity:0.68">
+    </a-cylinder>
+    <!-- Legs -->
+    <a-cylinder position="-0.075 0.8 0" radius="0.052" height="0.54"
+      material="shader:flat; emissive:#3d0d9e; emissiveIntensity:0.65; color:#5211bb; transparent:true; opacity:0.72">
+    </a-cylinder>
+    <a-cylinder position="0.075 0.8 0" radius="0.052" height="0.54"
+      material="shader:flat; emissive:#3d0d9e; emissiveIntensity:0.65; color:#5211bb; transparent:true; opacity:0.72">
+    </a-cylinder>
+    <!-- Floating spirit orbs around guardian -->
+    <a-sphere position="0.3 1.62 0.1" radius="0.024"
+      material="shader:flat; emissive:#ee88ff; emissiveIntensity:2.5; color:#ee88ff; transparent:true; opacity:0.92"
+      animation="property:position; from:0.3 1.62 0.1; to:0.38 1.98 0.18; dir:alternate; dur:3400; loop:true">
+    </a-sphere>
+    <a-sphere position="-0.34 1.58 -0.06" radius="0.019"
+      material="shader:flat; emissive:#dd77ff; emissiveIntensity:2.5; color:#dd77ff; transparent:true; opacity:0.88"
+      animation="property:position; from:-0.34 1.58 -0.06; to:-0.26 1.94 0.1; dir:alternate; dur:2800; loop:true; delay:600">
+    </a-sphere>
+    <a-sphere position="0.06 2.06 0.14" radius="0.016"
+      material="shader:flat; emissive:#cc99ff; emissiveIntensity:2.5; color:#cc99ff; transparent:true; opacity:0.82"
+      animation="property:position; from:0.06 2.06 0.14; to:0.22 2.38 -0.04; dir:alternate; dur:4100; loop:true; delay:1200">
+    </a-sphere>
+    <a-sphere position="-0.12 1.35 0.18" radius="0.014"
+      material="shader:flat; emissive:#bb88ff; emissiveIntensity:2; color:#bb88ff; transparent:true; opacity:0.75"
+      animation="property:position; from:-0.12 1.35 0.18; to:0.08 1.68 0.25; dir:alternate; dur:3700; loop:true; delay:900">
+    </a-sphere>
+  </a-entity>
+
+  <!-- ══════════════════════════════════════════════════
+       WANDERER 巡者 — Blue spirit, appears right side
+       World position: (1.1, 0, -1.0)
+  ══════════════════════════════════════════════════ -->
+  <a-entity id="wanderer" visible="false" position="1.1 0 -1.0">
+
+    <a-sphere id="w-head" position="0 1.76 0" radius="0.135"
+      material="shader:flat; emissive:#1144cc; emissiveIntensity:1.3; color:#3366ff; transparent:true; opacity:0.88"
+      animation__pulse="property:material.emissiveIntensity; from:0.9; to:1.7; dir:alternate; dur:2300; loop:true; delay:380">
+    </a-sphere>
+    <a-sphere position="0 1.76 0" radius="0.24"
+      material="shader:flat; emissive:#4488ff; emissiveIntensity:0.25; color:#4488ff; transparent:true; opacity:0.16"
+      animation="property:scale; from:0.88 0.88 0.88; to:1.14 1.14 1.14; dir:alternate; dur:2700; loop:true; delay:180">
+    </a-sphere>
+    <a-cylinder position="0 1.28 0" radius="0.092" height="0.65"
+      material="shader:flat; emissive:#1133bb; emissiveIntensity:0.85; color:#2255dd; transparent:true; opacity:0.78">
+    </a-cylinder>
+    <a-cylinder position="-0.21 1.4 0" radius="0.042" height="0.44" rotation="0 0 24"
+      material="shader:flat; emissive:#1133bb; emissiveIntensity:0.75; color:#2244cc; transparent:true; opacity:0.68">
+    </a-cylinder>
+    <a-cylinder position="0.21 1.4 0" radius="0.042" height="0.44" rotation="0 0 -24"
+      material="shader:flat; emissive:#1133bb; emissiveIntensity:0.75; color:#2244cc; transparent:true; opacity:0.68">
+    </a-cylinder>
+    <a-cylinder position="-0.075 0.8 0" radius="0.052" height="0.54"
+      material="shader:flat; emissive:#0d2999; emissiveIntensity:0.65; color:#1d3dbb; transparent:true; opacity:0.72">
+    </a-cylinder>
+    <a-cylinder position="0.075 0.8 0" radius="0.052" height="0.54"
+      material="shader:flat; emissive:#0d2999; emissiveIntensity:0.65; color:#1d3dbb; transparent:true; opacity:0.72">
+    </a-cylinder>
+    <!-- Wanderer spirit orbs -->
+    <a-sphere position="-0.3 1.62 0.1" radius="0.024"
+      material="shader:flat; emissive:#88ccff; emissiveIntensity:2.5; color:#88ccff; transparent:true; opacity:0.92"
+      animation="property:position; from:-0.3 1.62 0.1; to:-0.42 1.98 0.18; dir:alternate; dur:3100; loop:true">
+    </a-sphere>
+    <a-sphere position="0.32 1.55 -0.05" radius="0.019"
+      material="shader:flat; emissive:#aaddff; emissiveIntensity:2.5; color:#aaddff; transparent:true; opacity:0.88"
+      animation="property:position; from:0.32 1.55 -0.05; to:0.44 1.9 0.1; dir:alternate; dur:2600; loop:true; delay:550">
+    </a-sphere>
+    <a-sphere position="0.08 2.05 0.12" radius="0.016"
+      material="shader:flat; emissive:#99bbff; emissiveIntensity:2.5; color:#99bbff; transparent:true; opacity:0.82"
+      animation="property:position; from:0.08 2.05 0.12; to:-0.1 2.36 -0.05; dir:alternate; dur:3900; loop:true; delay:1000">
+    </a-sphere>
+  </a-entity>
+
+  <!-- ══════════════════════════════════════════════════
+       PURPLE ORBS (×3) — proximity / reach to collect
+       Positioned 0.7-0.9m in front of shelf, eye-level
+       Proximity threshold: 1.1m from camera center
+  ══════════════════════════════════════════════════ -->
+
+  <!-- Orb P1: left shelf, chest-eye level -->
+  <a-entity id="porb0" class="purple-orb" visible="false" position="-0.72 1.42 -0.72">
+    <a-sphere radius="0.078"
+      material="shader:flat; emissive:#bb33ff; emissiveIntensity:1.8; color:#dd55ff; transparent:true; opacity:0.96"
+      animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1350; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.14"
+      material="shader:flat; emissive:#9922dd; emissiveIntensity:0.5; color:#aa44ee; transparent:true; opacity:0.18"
+      animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2000; loop:true">
+    </a-sphere>
+    <!-- Sparkle center -->
+    <a-sphere radius="0.024" position="0.026 0.026 0"
+      material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
+    </a-sphere>
+    <a-text value="伸手靠近" color="#dd99ff" width="0.28" align="center"
+      position="0 0.22 0" material="shader:flat">
+    </a-text>
+  </a-entity>
+
+  <!-- Orb P2: slightly lower, left-center -->
+  <a-entity id="porb1" class="purple-orb" visible="false" position="-1.05 1.22 -0.75">
+    <a-sphere radius="0.078"
+      material="shader:flat; emissive:#bb33ff; emissiveIntensity:1.8; color:#dd55ff; transparent:true; opacity:0.96"
+      animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1550; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.14"
+      material="shader:flat; emissive:#9922dd; emissiveIntensity:0.5; color:#aa44ee; transparent:true; opacity:0.18"
+      animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2200; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.024" position="0.026 0.026 0"
+      material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
+    </a-sphere>
+    <a-text value="伸手靠近" color="#dd99ff" width="0.28" align="center"
+      position="0 0.22 0" material="shader:flat">
+    </a-text>
+  </a-entity>
+
+  <!-- Orb P3: upper left, near eye level -->
+  <a-entity id="porb2" class="purple-orb" visible="false" position="-0.5 1.72 -0.78">
+    <a-sphere radius="0.078"
+      material="shader:flat; emissive:#bb33ff; emissiveIntensity:1.8; color:#dd55ff; transparent:true; opacity:0.96"
+      animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1150; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.14"
+      material="shader:flat; emissive:#9922dd; emissiveIntensity:0.5; color:#aa44ee; transparent:true; opacity:0.18"
+      animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:1750; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.024" position="0.026 0.026 0"
+      material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
+    </a-sphere>
+    <a-text value="伸手靠近" color="#dd99ff" width="0.28" align="center"
+      position="0 0.22 0" material="shader:flat">
+    </a-text>
+  </a-entity>
+
+  <!-- ══════════════════════════════════════════════════
+       BLUE ORBS (×3) — gaze / dwell 2s to collect
+  ══════════════════════════════════════════════════ -->
+
+  <!-- Orb B1: upper right, drifting -->
+  <a-entity id="borb0" class="blue-orb" visible="false" position="0.6 1.92 -0.85">
+    <a-sphere radius="0.078"
+      material="shader:flat; emissive:#2255ee; emissiveIntensity:1.8; color:#44aaff; transparent:true; opacity:0.96"
+      animation="property:position; from:0 0 0; to:0.16 0.11 0; dir:alternate; dur:2500; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.14"
+      material="shader:flat; emissive:#1133cc; emissiveIntensity:0.5; color:#3388ff; transparent:true; opacity:0.18"
+      animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2100; loop:true">
+    </a-sphere>
+    <!-- Gaze progress ring -->
+    <a-torus id="gring0" radius="0.13" radius-tubular="0.007" color="#88ddff"
+      theta-length="0" rotation="0 0 90"
+      material="shader:flat; emissive:#66bbff; emissiveIntensity:2.5; transparent:true; opacity:0; color:#88ddff">
+    </a-torus>
+    <a-sphere radius="0.024" position="0.026 0.026 0"
+      material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
+    </a-sphere>
+    <a-text value="凝视2秒" color="#88ccff" width="0.28" align="center"
+      position="0 0.22 0" material="shader:flat">
+    </a-text>
+  </a-entity>
+
+  <!-- Orb B2: wanderer's side, mid height -->
+  <a-entity id="borb1" class="blue-orb" visible="false" position="1.28 1.52 -0.82">
+    <a-sphere radius="0.078"
+      material="shader:flat; emissive:#2255ee; emissiveIntensity:1.8; color:#44aaff; transparent:true; opacity:0.96"
+      animation="property:position; from:0 0 0; to:0.12 0.15 0; dir:alternate; dur:2000; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.14"
+      material="shader:flat; emissive:#1133cc; emissiveIntensity:0.5; color:#3388ff; transparent:true; opacity:0.18"
+      animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2400; loop:true">
+    </a-sphere>
+    <a-torus id="gring1" radius="0.13" radius-tubular="0.007" color="#88ddff"
+      theta-length="0" rotation="0 0 90"
+      material="shader:flat; emissive:#66bbff; emissiveIntensity:2.5; transparent:true; opacity:0; color:#88ddff">
+    </a-torus>
+    <a-sphere radius="0.024" position="0.026 0.026 0"
+      material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
+    </a-sphere>
+    <a-text value="凝视2秒" color="#88ccff" width="0.28" align="center"
+      position="0 0.22 0" material="shader:flat">
+    </a-text>
+  </a-entity>
+
+  <!-- Orb B3: high center-right, look up slightly -->
+  <a-entity id="borb2" class="blue-orb" visible="false" position="0.85 2.28 -0.88">
+    <a-sphere radius="0.078"
+      material="shader:flat; emissive:#2255ee; emissiveIntensity:1.8; color:#44aaff; transparent:true; opacity:0.96"
+      animation="property:position; from:0 0 0; to:-0.1 0.09 0; dir:alternate; dur:2800; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.14"
+      material="shader:flat; emissive:#1133cc; emissiveIntensity:0.5; color:#3388ff; transparent:true; opacity:0.18"
+      animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:1800; loop:true">
+    </a-sphere>
+    <a-torus id="gring2" radius="0.13" radius-tubular="0.007" color="#88ddff"
+      theta-length="0" rotation="0 0 90"
+      material="shader:flat; emissive:#66bbff; emissiveIntensity:2.5; transparent:true; opacity:0; color:#88ddff">
+    </a-torus>
+    <a-sphere radius="0.024" position="0.026 0.026 0"
+      material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
+    </a-sphere>
+    <a-text value="凝视2秒" color="#88ccff" width="0.28" align="center"
+      position="0 0.22 0" material="shader:flat">
+    </a-text>
+  </a-entity>
+
+  <!-- ══════════════════════════════════════════════════
+       ACT 4: LIGHT WEB  — spans the bookshelf face
+  ══════════════════════════════════════════════════ -->
+  <a-entity id="light-web" visible="false" position="0.28 1.38 -0.99">
+    <!-- Wide shelf-spanning glow -->
+    <a-plane width="4.0" height="3.0" color="#6622cc"
+      material="shader:flat; emissive:#6622cc; emissiveIntensity:0.4; transparent:true; opacity:0"
+      animation__in="property:material.opacity; from:0; to:0.10; dur:2000"
+      animation__out="property:material.opacity; from:0.10; to:0; dur:3500; delay:8000">
+    </a-plane>
+    <!-- Mixed purple+blue tendrils -->
+    <a-cylinder position="-0.9 0 0" radius="0.004" height="3.0" color="#cc44ff"
+      material="shader:flat; emissive:#aa22ee; emissiveIntensity:2; transparent:true; opacity:0"
+      rotation="0 0 12"
+      animation__in="property:material.opacity; from:0; to:0.72; dur:1600"
+      animation__out="property:material.opacity; from:0.72; to:0; dur:3500; delay:8000">
+    </a-cylinder>
+    <a-cylinder position="-0.1 0 0" radius="0.004" height="3.0" color="#8833ff"
+      material="shader:flat; emissive:#6611ee; emissiveIntensity:2; transparent:true; opacity:0"
+      rotation="0 0 -4"
+      animation__in="property:material.opacity; from:0; to:0.62; dur:1900; delay:200"
+      animation__out="property:material.opacity; from:0.62; to:0; dur:3500; delay:8000">
+    </a-cylinder>
+    <a-cylinder position="0.8 0 0" radius="0.004" height="3.0" color="#3355ff"
+      material="shader:flat; emissive:#1133ee; emissiveIntensity:2; transparent:true; opacity:0"
+      rotation="0 0 18"
+      animation__in="property:material.opacity; from:0; to:0.68; dur:1700; delay:400"
+      animation__out="property:material.opacity; from:0.68; to:0; dur:3500; delay:8000">
+    </a-cylinder>
+    <a-cylinder position="-1.6 0 0" radius="0.003" height="2.2" color="#aa55ff"
+      material="shader:flat; emissive:#8833ee; emissiveIntensity:2; transparent:true; opacity:0"
+      rotation="0 0 28"
+      animation__in="property:material.opacity; from:0; to:0.52; dur:2200; delay:600"
+      animation__out="property:material.opacity; from:0.52; to:0; dur:3500; delay:8000">
+    </a-cylinder>
+    <a-cylinder position="1.5 0 0" radius="0.003" height="2.2" color="#4466ff"
+      material="shader:flat; emissive:#2244ee; emissiveIntensity:2; transparent:true; opacity:0"
+      rotation="0 0 -22"
+      animation__in="property:material.opacity; from:0; to:0.56; dur:2200; delay:500"
+      animation__out="property:material.opacity; from:0.56; to:0; dur:3500; delay:8000">
+    </a-cylinder>
+    <!-- Horizontals -->
+    <a-cylinder position="0 0.55 0" radius="0.003" height="4.0" color="#9944ff"
+      material="shader:flat; emissive:#7722ee; emissiveIntensity:2; transparent:true; opacity:0"
+      rotation="0 0 90"
+      animation__in="property:material.opacity; from:0; to:0.45; dur:2400; delay:300"
+      animation__out="property:material.opacity; from:0.45; to:0; dur:3500; delay:8000">
+    </a-cylinder>
+    <a-cylinder position="0 -0.4 0" radius="0.003" height="4.0" color="#5566ff"
+      material="shader:flat; emissive:#3344ee; emissiveIntensity:2; transparent:true; opacity:0"
+      rotation="0 0 90"
+      animation__in="property:material.opacity; from:0; to:0.42; dur:2400; delay:500"
+      animation__out="property:material.opacity; from:0.42; to:0; dur:3500; delay:8000">
+    </a-cylinder>
+    <!-- Central burst -->
+    <a-sphere position="0 0 0.06" radius="0.5" color="#ffffff"
+      material="shader:flat; emissive:#ffffff; emissiveIntensity:4; transparent:true; opacity:0"
+      animation__flash="property:material.opacity; from:0.6; to:0; dur:1800; delay:500"
+      animation__grow="property:scale; from:0.2 0.2 0.2; to:5 5 5; dur:2500">
+    </a-sphere>
+  </a-entity>
+
+  <!-- Scene lights -->
+  <a-light type="ambient" color="#ffffff" intensity="0.55"></a-light>
+  <a-light id="g-point" type="point" color="#9922ff" intensity="0" position="-0.55 2.2 -1.0"></a-light>
+  <a-light id="w-point" type="point" color="#2255ff" intensity="0" position="1.1 2.2 -1.0"></a-light>
+
+</a-scene>
+
+<!-- ════════════════════════════════════════════════════════════════
+     EXPERIENCE ENGINE
+════════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ────────────────────────────────────────────────
+// NARRATIVE SCRIPT
+// ────────────────────────────────────────────────
+const SCRIPT = {
+  guardianIntro: [
+    { spkr:'g', name:'守者', txt:'又有人能看见了。\n好久了。',                    dur:5500 },
+    { spkr:'g', name:'守者', txt:'你知道吗，每一本书里都住着人。\n我们是看着他们的人。', dur:6500 },
+    { spkr:'g', name:'守者', txt:'但大多数时候，他们就这样等着。\n……你不介意等一会儿吧？',dur:6500 },
+  ],
+  wandererIntro: [
+    { spkr:'w', name:'巡者', txt:'啊……被看到了。',                              dur:4500 },
+    { spkr:'w', name:'巡者', txt:'我只是……在找一本书。\n应该是这排的某个位置。',    dur:5500 },
+    { spkr:'w', name:'巡者', txt:'我们一起找找看？',                              dur:4500 },
+  ],
+  orbs: [
+    // ── Purple 1 ──
+    { type:'purple', idx:0,
+      before: { spkr:'g', name:'守者', txt:'这是一个没有人读完的故事。\n它一直停在第七章。', dur:5500 },
+      after:  { spkr:'g', name:'守者', txt:'谢谢你。\n在这里，被拿起来就是被记得。',          dur:5500 }
+    },
+    // ── Blue 1 ──
+    { type:'blue', idx:0,
+      before: { spkr:'w', name:'巡者', txt:'那个发光的，\n是我记住的一句话。',               dur:4500 },
+      after:  { spkr:'w', name:'巡者', txt:'「有些书，你以为自己读完了，\n其实它还在读你。」', dur:6500 }
+    },
+    // ── Purple 2 ──
+    { type:'purple', idx:1,
+      before: { spkr:'g', name:'守者', txt:'这本——有人每年都来借。\n借走，看完，还回来。三十几年了。', dur:6500 },
+      after:  { spkr:'g', name:'守者', txt:'你猜他最后一次来是什么时候？',                          dur:5000 }
+    },
+    // ── Blue 2 ──
+    { type:'blue', idx:1,
+      before: { spkr:'w', name:'巡者', txt:'这个是……\n某个读者在这里睡着时做的梦。',  dur:5500 },
+      after:  { spkr:'w', name:'巡者', txt:'书里的人也会睡着。\n没人读的时候，他们就在梦里活动。', dur:6000 }
+    },
+    // ── Purple 3 ──
+    { type:'purple', idx:2,
+      before: { spkr:'g', name:'守者', txt:'这个……\n从来没人借过。',                  dur:5000 },
+      after:  { spkr:'g', name:'守者', txt:'但被很多人摸过封面。\n这种痕迹，我们也记着。', dur:5500 }
+    },
+    // ── Blue 3 (with followup) ──
+    { type:'blue', idx:2,
+      before: { spkr:'w', name:'巡者', txt:'最后这个……\n是我来这里的原因。\n只是……我忘了是什么了。', dur:6500 },
+      after:  { spkr:'w', name:'巡者', txt:'你还记得吗？', dur:3500,
+        followup: { spkr:'g', name:'守者', txt:'记得。\n我们就是因为这个才留在这里的。', dur:6000 }
+      }
+    },
+  ],
+  act4: [
+    { spkr:'g', name:'守者', txt:'你帮我们把好多东西都找回来了。',          dur:5500 },
+    { spkr:'w', name:'巡者', txt:'……谢谢。\n有时候连我们自己都会忘掉一些。', dur:5500 },
+    { spkr:'g', name:'守者', txt:'这里的每本书，我们看着它们。\n有人来，有人走。', dur:6000 },
+    { spkr:'w', name:'巡者', txt:'现在你也看到了。\n所以……这里也是你的了。',  dur:6000 },
+  ],
+  act5: [
+    { spkr:'g', name:'守者', txt:'下次来的时候，\n随便拿一本书。', dur:6500 },
+    { spkr:'g', name:'守者', txt:'我们在等的，\n就是这个。',       dur:7500 },
+  ]
+};
+
+// ────────────────────────────────────────────────
+// STATE
+// ────────────────────────────────────────────────
+let phase = 'loading';
+let orbPhase = 0;
+let waitCollect = false;
+let collectType = '';
+let collectIdx = -1;
+let onCollect = null;
+let gazeStart = 0;
+let gazeOrbEl = null;
+let gazeRingEl = null;
+let dlgTimer = null;
+let tickBound = false;
+let purpleCount = 0;
+let blueCount = 0;
+
+// DOM cache
+const D = {};
+function cacheDOM() {
+  D.scene    = document.getElementById('scene');
+  D.cam      = document.getElementById('cam');
+  D.hud      = document.getElementById('hud');
+  D.hudBg    = document.getElementById('hud-bg');
+  D.hudBar   = document.getElementById('hud-bar');
+  D.hudSpkr  = document.getElementById('hud-speaker');
+  D.hudTxt   = document.getElementById('hud-text');
+  D.gazeArc  = document.getElementById('gaze-arc');
+  D.guardian = document.getElementById('guardian');
+  D.wanderer = document.getElementById('wanderer');
+  D.lightWeb = document.getElementById('light-web');
+  D.gPoint   = document.getElementById('g-point');
+  D.wPoint   = document.getElementById('w-point');
+  D.hint     = document.getElementById('hint');
+  D.counter  = document.getElementById('orb-counter');
+  D.porbs    = [0,1,2].map(i => document.getElementById('porb'+i));
+  D.borbs    = [0,1,2].map(i => document.getElementById('borb'+i));
+  D.grings   = [0,1,2].map(i => document.getElementById('gring'+i));
+}
+
+// ────────────────────────────────────────────────
+// ENTRY POINT
+// ────────────────────────────────────────────────
+function enterAR() {
+  document.getElementById('overlay').style.display = 'none';
+  cacheDOM();
+  D.hint.style.display = 'block';
+  D.counter.style.display = 'block';
+  D.hint.textContent = '正在进入体验……';
+
+  D.scene.enterVR(); // enters immersive-ar on Quest 3
+
+  // Hook tick after scene loads
+  if (D.scene.hasLoaded) {
+    bindTick();
+  } else {
+    D.scene.addEventListener('loaded', bindTick, { once: true });
+  }
+
+  setTimeout(startExperience, 3500);
+}
+
+function bindTick() {
+  if (tickBound) return;
+  tickBound = true;
+  D.scene.addEventListener('tick', onTick);
+}
+
+// ────────────────────────────────────────────────
+// EXPERIENCE FLOW  (async/await narrative engine)
+// ────────────────────────────────────────────────
+async function startExperience() {
+  phase = 'act1';
+  D.hint.textContent = '感受书架间渗出的光……';
+  // Act 1 ambient runs via CSS animations (rays fade in automatically)
+  // Shortened to 12s for practical demo
+  await sleep(12000);
+  await act2_guardian();
+}
+
+async function act2_guardian() {
+  phase = 'act2g';
+  D.guardian.setAttribute('visible', true);
+  animLight(D.gPoint, 0.5, 3000);
+  D.hint.textContent = '守者出现了……';
+  await sleep(1200);
+  await playLines(SCRIPT.guardianIntro);
+  await sleep(1800);
+  await act2_wanderer();
+}
+
+async function act2_wanderer() {
+  phase = 'act2w';
+  D.wanderer.setAttribute('visible', true);
+  animLight(D.wPoint, 0.5, 3000);
+  D.hint.textContent = '巡者从书架侧面出现……';
+  await sleep(1200);
+  await playLines(SCRIPT.wandererIntro);
+  await sleep(2000);
+  await act3_collect();
+}
+
+async function act3_collect() {
+  phase = 'act3';
+  D.hint.textContent = '靠近紫色光点 | 凝视蓝色光点2秒';
+  for (let i = 0; i < SCRIPT.orbs.length; i++) {
+    orbPhase = i;
+    await runOrb(SCRIPT.orbs[i]);
+    await sleep(1400);
+  }
+  await act4_confluence();
+}
+
+async function runOrb(orbData) {
+  await playLine(orbData.before);
+
+  if (orbData.type === 'purple') {
+    D.porbs[orbData.idx].setAttribute('visible', true);
+    collectType = 'purple';
+    collectIdx = orbData.idx;
+  } else {
+    D.borbs[orbData.idx].setAttribute('visible', true);
+    gazeOrbEl  = D.borbs[orbData.idx];
+    gazeRingEl = D.grings[orbData.idx];
+    gazeStart  = 0;
+    collectType = 'blue';
+    collectIdx = orbData.idx;
+  }
+
+  waitCollect = true;
+  await new Promise(res => { onCollect = res; });
+  waitCollect = false;
+
+  // Hide orb + flash
+  if (orbData.type === 'purple') {
+    D.porbs[orbData.idx].setAttribute('visible', false);
+    purpleCount++;
+  } else {
+    D.borbs[orbData.idx].setAttribute('visible', false);
+    resetGazeRing(orbData.idx);
+    gazeOrbEl = null;
+    gazeStart  = 0;
+    blueCount++;
+  }
+  updateCounter();
+  spawnCollectFlash(orbData.type);
+  await sleep(500);
+
+  await playLine(orbData.after);
+  if (orbData.after.followup) {
+    await sleep(700);
+    await playLine(orbData.after.followup);
+  }
+}
+
+async function act4_confluence() {
+  phase = 'act4';
+  D.hint.textContent = '光网覆盖书架……';
+  D.lightWeb.setAttribute('visible', true);
+  await sleep(800);
+  await playLines(SCRIPT.act4);
+  await sleep(9000); // light web fades
+  await act5_farewell();
+}
+
+async function act5_farewell() {
+  phase = 'act5';
+  // Wanderer fades out silently while guardian speaks
+  fadeEntity(D.wanderer, 4000);
+  await playLines(SCRIPT.act5);
+  await sleep(1800);
+  fadeEntity(D.guardian, 6000);
+  await sleep(6500);
+  D.hint.textContent = '✦ 体验结束 · 感谢您的到来 ✦';
+  hideHUD();
+  phase = 'done';
+}
+
+// ────────────────────────────────────────────────
+// TICK — proximity + gaze detection
+// ────────────────────────────────────────────────
+let _lastTick = 0;
+const _v3a = new THREE.Vector3();
+const _v3b = new THREE.Vector3();
+const _v3c = new THREE.Vector3();
+
+function onTick() {
+  const now = Date.now();
+  if (now - _lastTick < 60) return;   // ~16fps check
+  _lastTick = now;
+  if (!waitCollect) return;
+
+  const camObj = D.cam.object3D;
+  if (!camObj) return;
+
+  if (collectType === 'purple') {
+    tickProximity(camObj);
+  } else if (collectType === 'blue') {
+    tickGaze(camObj);
+  }
+}
+
+const PROX_THRESHOLD = 1.15; // metres from camera to orb
+
+function tickProximity(camObj) {
+  const orb = D.porbs[collectIdx];
+  if (!orb || !orb.getAttribute('visible')) return;
+
+  camObj.getWorldPosition(_v3a);
+  orb.object3D.getWorldPosition(_v3b);
+
+  const dist = _v3a.distanceTo(_v3b);
+  if (dist < PROX_THRESHOLD) {
+    fireCollect();
+  }
+}
+
+const GAZE_ANGLE_DEG = 9;
+const GAZE_DURATION  = 2000;
+
+function tickGaze(camObj) {
+  if (!gazeOrbEl) return;
+
+  camObj.getWorldPosition(_v3a);
+  camObj.getWorldDirection(_v3c);
+  gazeOrbEl.object3D.getWorldPosition(_v3b);
+
+  const toOrb = _v3b.clone().sub(_v3a).normalize();
+  const dot = _v3c.dot(toOrb);
+  const angleDeg = Math.acos(Math.max(-1, Math.min(1, dot))) * (180 / Math.PI);
+
+  if (angleDeg < GAZE_ANGLE_DEG) {
+    const now = Date.now();
+    if (!gazeStart) gazeStart = now;
+    const elapsed = now - gazeStart;
+    const t = Math.min(elapsed / GAZE_DURATION, 1);
+
+    // Update gaze ring on the orb
+    if (gazeRingEl) {
+      gazeRingEl.setAttribute('theta-length', t * 360);
+      gazeRingEl.setAttribute('material',
+        `shader:flat; emissive:#66bbff; emissiveIntensity:2.5; transparent:true; opacity:${0.3 + t * 0.7}; color:#88ddff`);
+    }
+    // Update HUD gaze arc
+    D.gazeArc.setAttribute('theta-length', t * 360);
+    D.gazeArc.setAttribute('material',
+      `shader:flat; emissive:#66aaff; emissiveIntensity:2; transparent:true; opacity:${t * 0.85}; color:#88ccff`);
+
+    if (t >= 1) fireCollect();
+  } else {
+    // Reset
+    if (gazeStart) {
+      gazeStart = 0;
+      if (gazeRingEl) {
+        gazeRingEl.setAttribute('theta-length', 0);
+        gazeRingEl.setAttribute('material', 'transparent:true; opacity:0');
+      }
+      D.gazeArc.setAttribute('theta-length', 0);
+      D.gazeArc.setAttribute('material', 'transparent:true; opacity:0');
+    }
+  }
+}
+
+function fireCollect() {
+  if (!onCollect) return;
+  const cb = onCollect;
+  onCollect = null;
+  waitCollect = false;
+  // Reset gaze arc
+  D.gazeArc.setAttribute('theta-length', 0);
+  D.gazeArc.setAttribute('material', 'transparent:true; opacity:0');
+  cb();
+}
+
+function resetGazeRing(idx) {
+  const r = D.grings[idx];
+  if (!r) return;
+  r.setAttribute('theta-length', 0);
+  r.setAttribute('material', 'transparent:true; opacity:0');
+}
+
+// ────────────────────────────────────────────────
+// DIALOGUE / HUD
+// ────────────────────────────────────────────────
+function playLine(line) {
+  return new Promise(resolve => {
+    const isG = line.spkr === 'g';
+
+    D.hudBar.setAttribute('material',
+      isG ? 'color:#9922ff; shader:flat; transparent:true; opacity:0.9'
+          : 'color:#2255ff; shader:flat; transparent:true; opacity:0.9');
+    D.hudSpkr.setAttribute('color', isG ? '#cc88ff' : '#88bbff');
+    D.hudSpkr.setAttribute('value', line.name || (isG ? '守者':'巡者'));
+    D.hudTxt.setAttribute('value', line.txt);
+    D.hud.setAttribute('visible', true);
+
+    const dur = line.dur || Math.max(3500, line.txt.length * 95);
+    if (dlgTimer) clearTimeout(dlgTimer);
+    dlgTimer = setTimeout(() => {
+      hideHUD();
+      resolve();
+    }, dur);
+  });
+}
+
+async function playLines(lines) {
+  for (const l of lines) {
+    await playLine(l);
+    await sleep(600);
+  }
+}
+
+function hideHUD() {
+  D.hud.setAttribute('visible', false);
+}
+
+// ────────────────────────────────────────────────
+// VFX HELPERS
+// ────────────────────────────────────────────────
+function spawnCollectFlash(type) {
+  const color = type === 'purple' ? '#dd77ff' : '#77bbff';
+  const emissive = type === 'purple' ? '#cc55ff' : '#5599ff';
+  const flash = document.createElement('a-sphere');
+  flash.setAttribute('radius', '0.18');
+  flash.setAttribute('material',
+    `shader:flat; emissive:${emissive}; emissiveIntensity:3; transparent:true; opacity:0.88; color:${color}`);
+  flash.setAttribute('position', '0 -0.1 -0.5');
+  flash.setAttribute('animation',
+    'property:material.opacity; from:0.88; to:0; dur:700; easing:easeOutCubic');
+  D.cam.appendChild(flash);
+  setTimeout(() => flash.remove(), 800);
+}
+
+function fadeEntity(entity, duration) {
+  entity.querySelectorAll('[material]').forEach(el => {
+    const existing = el.getAttribute('material');
+    el.setAttribute('animation__fade',
+      `property:material.opacity; to:0; dur:${duration}; easing:easeInCubic`);
+  });
+  setTimeout(() => entity.setAttribute('visible', false), duration + 100);
+}
+
+function animLight(el, targetIntensity, dur) {
+  el.setAttribute('animation',
+    `property:intensity; from:0; to:${targetIntensity}; dur:${dur}; easing:easeOutCubic`);
+}
+
+function updateCounter() {
+  D.counter.textContent = `🟣 ${purpleCount}/3   🔵 ${blueCount}/3`;
+}
+
+// ────────────────────────────────────────────────
+// UTILITY
+// ────────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
