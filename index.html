@@ -604,10 +604,9 @@ let tickBound = false;
 let purpleCount = 0;
 let blueCount = 0;
 
-// Hand-tracking state
-let handPinchActive = false;        // currently pinching (either hand)
-let lastPinchPos = new THREE.Vector3();
-let orbProxFeedbackT = 0;           // 0..1 pulse based on hand proximity
+// Visual feedback state — pulse strength of the active orb based on
+// how close the nearest tracked input (hand tip / controller) is to it.
+let orbProxFeedbackT = 0;
 
 // DOM cache
 const D = {};
@@ -768,77 +767,127 @@ function bindTick() {
 }
 
 // ────────────────────────────────────────────────
-// INPUT BINDINGS — hand pinch + controller trigger
+// INPUT BINDINGS — three.js WebXR hand + controller poses
 // ────────────────────────────────────────────────
 //
-// hand-tracking-controls (A-Frame 1.5) emits 'pinchstarted' / 'pinchmoved'
-// / 'pinchended' on each hand entity. detail.position is the world-space
-// THREE.Vector3 of the pinch midpoint. We use this both as "the user
-// performed a deliberate grab" *and* as a precise hand position.
+// A-Frame's hand-tracking-controls component does NOT sync hand pose
+// onto the entity's object3D — it only renders a hand mesh. So reading
+// `D.leftHand.object3D.position` always returned (0,0,0) and our
+// detection silently failed every frame.
 //
-// We ALSO register the hand entities as generic VR controllers so a
-// trigger press on a Quest controller (when the user is NOT using hands)
-// fires the same collection path. Quest browser exposes whichever input
-// the user is currently using; binding both is harmless.
+// The correct path is three.js's WebXRManager:
+//   renderer.xr.getHand(i)          → THREE.Group with .joints[]
+//                                     where each joint is a Group
+//                                     positioned every XR frame.
+//   renderer.xr.getControllerGrip(i) → grip-space Group for hand
+//                                     controllers (Quest Touch etc.)
+//
+// We pre-fetch indices 0 and 1, since the user could be holding either
+// hand controller or using bare hands (hand tracking enabled in Quest
+// settings). We poll all four objects every tick and collect any that
+// have a valid (non-origin) world position.
 function setupInputBindings() {
   if (window._inputBound) return;
   window._inputBound = true;
 
-  ['leftHand', 'rightHand'].forEach(key => {
-    const el = D[key];
-    if (!el) return;
+  // Pre-fetch three.js XR input groups. These work whether or not the
+  // session has started yet; three.js fills them in once it does.
+  function bindXRInputs() {
+    const renderer = D.scene && D.scene.renderer;
+    if (!renderer || !renderer.xr) return;
+    if (window._xrInputsBound) return;
+    window._xrInputsBound = true;
 
-    // Pinch: thumb + index touching = "grab"
-    el.addEventListener('pinchstarted', (evt) => {
-      handPinchActive = true;
-      if (evt.detail && evt.detail.position) {
-        lastPinchPos.copy(evt.detail.position);
-      }
-      tryHandCollect(evt.detail && evt.detail.position);
-    });
-    el.addEventListener('pinchmoved', (evt) => {
-      if (evt.detail && evt.detail.position) {
-        lastPinchPos.copy(evt.detail.position);
-        // Allow collection while pinching as the hand sweeps near an orb
-        tryHandCollect(evt.detail.position);
-      }
-    });
-    el.addEventListener('pinchended', () => {
-      handPinchActive = false;
+    window._xrHand0 = renderer.xr.getHand(0);
+    window._xrHand1 = renderer.xr.getHand(1);
+    window._xrGrip0 = renderer.xr.getControllerGrip(0);
+    window._xrGrip1 = renderer.xr.getControllerGrip(1);
+    window._xrCtrl0 = renderer.xr.getController(0);
+    window._xrCtrl1 = renderer.xr.getController(1);
+
+    // Trigger / select-start on a controller fires an immediate collect
+    [window._xrCtrl0, window._xrCtrl1].forEach((c) => {
+      if (!c) return;
+      c.addEventListener('selectstart', () => tryHandCollect());
     });
 
-    // Controller fallback (Quest controllers, not hands)
-    el.addEventListener('triggerdown', () => tryHandCollect(null));
-    el.addEventListener('selectstart', () => tryHandCollect(null));
+    // Also bind pinch events from A-Frame's hand-tracking-controls as
+    // a redundant signal — works on builds where the component DOES
+    // emit them, harmless when it doesn't.
+    ['leftHand', 'rightHand'].forEach(key => {
+      const el = D[key];
+      if (!el) return;
+      el.addEventListener('pinchstarted', () => tryHandCollect());
+      el.addEventListener('triggerdown', () => tryHandCollect());
+    });
+  }
+
+  if (D.scene.hasLoaded) bindXRInputs();
+  else D.scene.addEventListener('loaded', bindXRInputs, { once: true });
+  // Also retry on session entry — sometimes renderer.xr isn't ready until then
+  D.scene.addEventListener('enter-vr', bindXRInputs);
+  D.scene.addEventListener('enter-ar', bindXRInputs);
+}
+
+// Reusable scratch vector to avoid allocating per frame
+const _scratchVec = new THREE.Vector3();
+
+// Collect all currently-tracked input world positions (hands + controllers).
+// `out` array is filled with THREE.Vector3 instances.
+function gatherInputPositions(out) {
+  out.length = 0;
+
+  // Hand joints — preferred (more precise than controller grip)
+  [window._xrHand0, window._xrHand1].forEach(h => {
+    if (!h || !h.joints) return;
+    // Index fingertip is the natural "poke" point
+    const tip = h.joints['index-finger-tip'];
+    if (tip) {
+      const v = new THREE.Vector3();
+      tip.getWorldPosition(v);
+      if (v.lengthSq() > 0.0001) out.push(v);
+    }
+    // Thumb tip too — gives a second reachable point per hand
+    const thumb = h.joints['thumb-tip'];
+    if (thumb) {
+      const v = new THREE.Vector3();
+      thumb.getWorldPosition(v);
+      if (v.lengthSq() > 0.0001) out.push(v);
+    }
+    // Wrist as a larger fallback target
+    const wrist = h.joints['wrist'];
+    if (wrist) {
+      const v = new THREE.Vector3();
+      wrist.getWorldPosition(v);
+      if (v.lengthSq() > 0.0001) out.push(v);
+    }
+  });
+
+  // Controllers (Quest Touch etc.) — used when hands aren't tracked
+  [window._xrGrip0, window._xrGrip1].forEach(c => {
+    if (!c) return;
+    const v = new THREE.Vector3();
+    c.getWorldPosition(v);
+    if (v.lengthSq() > 0.0001) out.push(v);
   });
 }
 
-// Try to collect a purple orb based on a hand/pinch position.
-// If `pos` is null (controller trigger), use the wrist position of
-// whichever hand is closer to the active orb.
-function tryHandCollect(pos) {
+// Try to collect the active orb. Used by event-driven inputs (trigger,
+// pinch) — instantly evaluates current input positions.
+const _inputBuf = [];
+function tryHandCollect() {
   if (!waitCollect || collectType !== 'purple') return;
   const orb = D.porbs[collectIdx];
   if (!orb || !orb.getAttribute('visible')) return;
 
   orb.object3D.getWorldPosition(_v3b);
+  gatherInputPositions(_inputBuf);
 
-  let dist = Infinity;
-  if (pos) {
-    dist = pos.distanceTo(_v3b);
-  } else {
-    // Use closest wrist
-    [D.leftHand, D.rightHand].forEach(h => {
-      if (!h) return;
-      h.object3D.getWorldPosition(_v3a);
-      if (_v3a.lengthSq() < 0.0001) return; // not tracked
-      const d = _v3a.distanceTo(_v3b);
-      if (d < dist) dist = d;
-    });
-  }
-
-  if (dist < HAND_COLLECT_DIST) {
-    fireCollect();
+  for (const p of _inputBuf) {
+    if (p.distanceTo(_v3b) < HAND_COLLECT_DIST) {
+      fireCollect();
+      return;
+    }
   }
 }
 
@@ -906,14 +955,11 @@ async function runOrb(orbData) {
   }
 
   waitCollect = true;
-  // Auto-advance after 25s so the story never permanently stalls — but
-  // long enough that an unsuccessful grab doesn't immediately look like
-  // "the orb just floated to me on its own".
-  const _autoAdv = setTimeout(() => {
-    if (onCollect) { const cb = onCollect; onCollect = null; waitCollect = false; cb(); }
-  }, 25000);
+  // No more auto-advance — the user must actually collect the orb,
+  // either by reaching out (purple) or holding gaze (blue). Earlier
+  // versions force-resolved after 12-25 s, which felt like the orb
+  // "just floated to me" and broke the sense of interaction.
   await new Promise(res => { onCollect = res; });
-  clearTimeout(_autoAdv);
   waitCollect = false;
 
   // Capture the orb's world position BEFORE we hide it, so the flash
@@ -996,9 +1042,8 @@ function onTick() {
   }
 }
 
-const HAND_COLLECT_DIST = 0.22;   // 22cm — hand/pinch within this triggers grab
+const HAND_COLLECT_DIST = 0.25;   // 25cm — hand tip / controller within this triggers grab
 const HAND_FEEDBACK_DIST = 0.55;  // start visual highlight when hand within 55cm
-const HEAD_FALLBACK_DIST = 0.45;  // very close head approach as last-ditch fallback
 
 function tickProximity(camObj) {
   const orb = D.porbs[collectIdx];
@@ -1006,39 +1051,29 @@ function tickProximity(camObj) {
 
   orb.object3D.getWorldPosition(_v3b);
 
-  // ── 1. Find closest hand (wrist) to the orb ───────────────────────
-  let bestHandDist = Infinity;
-  [D.leftHand, D.rightHand].forEach(h => {
-    if (!h) return;
-    h.object3D.getWorldPosition(_v3a);
-    // Hand entity sits at origin until WebXR starts streaming joint poses.
-    // Skip untracked hands so they don't auto-collect from (0,0,0).
-    if (_v3a.lengthSq() < 0.0001) return;
-    const d = _v3a.distanceTo(_v3b);
-    if (d < bestHandDist) bestHandDist = d;
-  });
+  // Pull every tracked input position (hand joints + controller grips)
+  gatherInputPositions(_inputBuf);
 
-  // Also consider the live pinch midpoint when user is currently pinching
-  if (handPinchActive) {
-    const pd = lastPinchPos.distanceTo(_v3b);
-    if (pd < bestHandDist) bestHandDist = pd;
+  let bestDist = Infinity;
+  for (const p of _inputBuf) {
+    const d = p.distanceTo(_v3b);
+    if (d < bestDist) bestDist = d;
   }
 
-  // ── 2. Visual feedback as hand approaches ─────────────────────────
-  applyOrbProximityFeedback(orb, bestHandDist);
+  // ── Visual feedback as hand approaches ─────────────────────────
+  applyOrbProximityFeedback(orb, bestDist);
 
-  // ── 3. Trigger collection on touch ────────────────────────────────
-  if (bestHandDist < HAND_COLLECT_DIST) {
-    fireCollect();
-    return;
+  // ── Debug HUD line so the user can SEE what tracking sees ─────
+  if (D.hint && _inputBuf.length > 0) {
+    D.hint.textContent =
+      `🟣 Reach the purple orb — closest input: ${(bestDist * 100).toFixed(0)} cm`;
+  } else if (D.hint) {
+    D.hint.textContent =
+      `🟣 No hand / controller tracked yet — show your hands to the headset`;
   }
 
-  // ── 4. Fallback — only when head is *very* close to orb (~45cm) ──
-  // This covers Quest sessions where hand-tracking is disabled and the
-  // user has no controllers either; they can still progress by leaning in.
-  // The old 1.15m threshold was way too loose (collected on first frame).
-  camObj.getWorldPosition(_v3a);
-  if (_v3a.distanceTo(_v3b) < HEAD_FALLBACK_DIST) {
+  // ── Trigger collection on touch ───────────────────────────────
+  if (bestDist < HAND_COLLECT_DIST) {
     fireCollect();
   }
 }
@@ -1069,6 +1104,16 @@ function tickGaze(camObj) {
   camObj.getWorldDirection(_v3c);
   gazeOrbEl.object3D.getWorldPosition(_v3b);
 
+  // ── Allow blue orbs to ALSO be collected by hand touch ────────
+  // (cheap, non-exclusive — gaze still works as the primary path)
+  gatherInputPositions(_inputBuf);
+  for (const p of _inputBuf) {
+    if (p.distanceTo(_v3b) < HAND_COLLECT_DIST) {
+      fireCollect();
+      return;
+    }
+  }
+
   const toOrb = _v3b.clone().sub(_v3a).normalize();
   const dot = _v3c.dot(toOrb);
   const angleDeg = Math.acos(Math.max(-1, Math.min(1, dot))) * (180 / Math.PI);
@@ -1090,6 +1135,10 @@ function tickGaze(camObj) {
     D.gazeArc.setAttribute('material',
       `shader:flat; emissive:#66aaff; emissiveIntensity:2; transparent:true; opacity:${t * 0.85}; color:#88ccff`);
 
+    if (D.hint) {
+      D.hint.textContent = `🔵 Hold gaze… ${Math.round(t * 100)}%`;
+    }
+
     if (t >= 1) fireCollect();
   } else {
     // Reset
@@ -1101,6 +1150,10 @@ function tickGaze(camObj) {
       }
       D.gazeArc.setAttribute('theta-length', 0);
       D.gazeArc.setAttribute('material', 'transparent:true; opacity:0');
+    }
+    if (D.hint) {
+      D.hint.textContent =
+        `🔵 Look at the blue orb · angle ${angleDeg.toFixed(0)}° (need <${GAZE_ANGLE_DEG}°)`;
     }
   }
 }
