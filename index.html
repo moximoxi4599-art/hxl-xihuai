@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>书架守望者 · Library Guardians AR</title>
+<title>Library Guardians · AR Experience</title>
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -73,16 +73,16 @@ body { background:#000; overflow:hidden; }
 
 <!-- ════════════════ LANDING SCREEN ════════════════ -->
 <div id="overlay">
-  <h1>书架守望者</h1>
-  <div class="sub">Library Guardians · AR Experience</div>
+  <h1>Library Guardians</h1>
+  <div class="sub">A Mixed-Reality Performance</div>
   <div class="instructions">
-    <span>① 站在图书馆书架前 约 1 米处</span><br>
-    <span>② 佩戴好 Meta Quest 3</span><br>
-    <span>③ 在 Quest 浏览器中打开此页面（需 <b style="color:#ee99ff">HTTPS</b>）</span><br>
-    <span>④ 点击下方按钮，进入 AR 世界</span><br>
-    <span style="color:#554477; font-size:0.85em">💻 电脑端：桌面预览模式（无 AR）</span>
+    <span>① Stand about 1m in front of a bookshelf</span><br>
+    <span>② Put on your Meta Quest 3</span><br>
+    <span>③ Open this page in the Quest browser (<b style="color:#ee99ff">HTTPS</b> required)</span><br>
+    <span>④ Tap the button below to begin</span><br>
+    <span style="color:#554477; font-size:0.85em">💻 On desktop: preview mode (no AR)</span>
   </div>
-  <button id="btn" onclick="enterAR()">✦ 进入体验 ✦</button>
+  <button id="btn" onclick="enterAR()">✦ Begin Experience ✦</button>
 </div>
 
 <div id="hint"></div>
@@ -98,16 +98,16 @@ body { background:#000; overflow:hidden; }
   background="color:transparent">
 
   <a-assets timeout="10000">
-    <!-- ═══ 守者 GUARDIAN: 你自己绘制的立绘(PNG, 透明背景) ═══ -->
+    <!-- ═══ GUARDIAN portrait (PNG with transparent background) ═══ -->
     <img id="tex-guardian" crossorigin="anonymous" src="assets/guardian.png"/>
 
-    <!-- 守者周围的紫色光晕 (SVG, 程序生成) -->
+    <!-- Soft purple aura around the Guardian (auto-generated SVG) -->
     <img id="tex-guardian-aura" crossorigin="anonymous" src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 800"><defs><radialGradient id="ga" cx="50%" cy="40%"><stop offset="0%" stop-color="%23cc77ff" stop-opacity="0.6"/><stop offset="40%" stop-color="%238822dd" stop-opacity="0.3"/><stop offset="100%" stop-color="%23000000" stop-opacity="0"/></radialGradient></defs><ellipse cx="250" cy="320" rx="220" ry="380" fill="url(%23ga)"/></svg>'/>
 
-    <!-- ═══ 巡者 WANDERER: 你自己绘制的立绘(PNG, 透明背景) ═══ -->
+    <!-- ═══ WANDERER portrait (PNG with transparent background) ═══ -->
     <img id="tex-wanderer" crossorigin="anonymous" src="assets/wanderer.png"/>
 
-    <!-- 巡者周围的蓝色光晕 -->
+    <!-- Soft blue aura around the Wanderer -->
     <img id="tex-wanderer-aura" crossorigin="anonymous" src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 800"><defs><radialGradient id="wa" cx="50%" cy="40%"><stop offset="0%" stop-color="%2377aaff" stop-opacity="0.6"/><stop offset="40%" stop-color="%232255cc" stop-opacity="0.3"/><stop offset="100%" stop-color="%23000000" stop-opacity="0"/></radialGradient></defs><ellipse cx="250" cy="320" rx="220" ry="380" fill="url(%23wa)"/></svg>'/>
   </a-assets>
 
@@ -131,7 +131,6 @@ body { background:#000; overflow:hidden; }
       </a-entity>
 
       <!-- ── HUD SUBTITLE PANEL ── -->
-      <!-- Positioned 1.5m in front, 0.35m below center -->
       <a-entity id="hud" position="0 -0.35 -1.5" visible="false">
         <!-- Background panel -->
         <a-plane id="hud-bg" width="1.6" height="0.44"
@@ -142,14 +141,14 @@ body { background:#000; overflow:hidden; }
           material="shader:flat; color:#8833ff; transparent:true; opacity:0.9">
         </a-plane>
         <!-- Speaker label -->
-        <a-text id="hud-speaker" value="守者" color="#cc88ff"
-          position="-0.74 0.13 0.003" width="0.5" font="roboto" align="left"
-          letter-spacing="1">
+        <a-text id="hud-speaker" value="Guardian" color="#cc88ff"
+          position="-0.74 0.13 0.003" width="0.6" font="roboto" align="left"
+          letter-spacing="2">
         </a-text>
         <!-- Dialogue text -->
         <a-text id="hud-text" value="" color="#e8ddff"
           position="-0.74 -0.03 0.003" width="1.4" font="roboto"
-          wrap-count="32" line-height="38" align="left">
+          wrap-count="40" line-height="42" align="left">
         </a-text>
       </a-entity>
 
@@ -227,7 +226,7 @@ body { background:#000; overflow:hidden; }
   </a-entity>
 
   <!-- ══════════════════════════════════════════════════
-       GUARDIAN 守者 — Purple spirit billboard sprite
+       GUARDIAN — Purple spirit billboard sprite
        Always faces camera. SVG portrait set via JS at runtime.
   ══════════════════════════════════════════════════ -->
   <a-entity id="guardian" visible="false" position="-0.55 1.4 -1.0" look-at-camera>
@@ -261,7 +260,7 @@ body { background:#000; overflow:hidden; }
   </a-entity>
 
   <!-- ══════════════════════════════════════════════════
-       WANDERER 巡者 — Blue spirit billboard sprite
+       WANDERER — Blue spirit billboard sprite
   ══════════════════════════════════════════════════ -->
   <a-entity id="wanderer" visible="false" position="1.1 1.4 -1.0" look-at-camera>
     <!-- Soft outer aura -->
@@ -309,7 +308,7 @@ body { background:#000; overflow:hidden; }
     <a-sphere radius="0.024" position="0.026 0.026 0"
       material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
     </a-sphere>
-    <a-text value="伸手靠近" color="#dd99ff" width="0.28" align="center"
+    <a-text value="Reach" color="#dd99ff" width="0.28" align="center"
       position="0 0.22 0" material="shader:flat">
     </a-text>
   </a-entity>
@@ -327,7 +326,7 @@ body { background:#000; overflow:hidden; }
     <a-sphere radius="0.024" position="0.026 0.026 0"
       material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
     </a-sphere>
-    <a-text value="伸手靠近" color="#dd99ff" width="0.28" align="center"
+    <a-text value="Reach" color="#dd99ff" width="0.28" align="center"
       position="0 0.22 0" material="shader:flat">
     </a-text>
   </a-entity>
@@ -345,7 +344,7 @@ body { background:#000; overflow:hidden; }
     <a-sphere radius="0.024" position="0.026 0.026 0"
       material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
     </a-sphere>
-    <a-text value="伸手靠近" color="#dd99ff" width="0.28" align="center"
+    <a-text value="Reach" color="#dd99ff" width="0.28" align="center"
       position="0 0.22 0" material="shader:flat">
     </a-text>
   </a-entity>
@@ -372,7 +371,7 @@ body { background:#000; overflow:hidden; }
     <a-sphere radius="0.024" position="0.026 0.026 0"
       material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
     </a-sphere>
-    <a-text value="凝视2秒" color="#88ccff" width="0.28" align="center"
+    <a-text value="Gaze 2s" color="#88ccff" width="0.28" align="center"
       position="0 0.22 0" material="shader:flat">
     </a-text>
   </a-entity>
@@ -394,7 +393,7 @@ body { background:#000; overflow:hidden; }
     <a-sphere radius="0.024" position="0.026 0.026 0"
       material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
     </a-sphere>
-    <a-text value="凝视2秒" color="#88ccff" width="0.28" align="center"
+    <a-text value="Gaze 2s" color="#88ccff" width="0.28" align="center"
       position="0 0.22 0" material="shader:flat">
     </a-text>
   </a-entity>
@@ -416,7 +415,7 @@ body { background:#000; overflow:hidden; }
     <a-sphere radius="0.024" position="0.026 0.026 0"
       material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
     </a-sphere>
-    <a-text value="凝视2秒" color="#88ccff" width="0.28" align="center"
+    <a-text value="Gaze 2s" color="#88ccff" width="0.28" align="center"
       position="0 0.22 0" material="shader:flat">
     </a-text>
   </a-entity>
@@ -524,58 +523,58 @@ AFRAME.registerComponent('look-at-camera', {
 // ────────────────────────────────────────────────
 const SCRIPT = {
   guardianIntro: [
-    { spkr:'g', name:'守者', txt:'又有人能看见了。\n好久了。',                    dur:5500 },
-    { spkr:'g', name:'守者', txt:'你知道吗，每一本书里都住着人。\n我们是看着他们的人。', dur:6500 },
-    { spkr:'g', name:'守者', txt:'但大多数时候，他们就这样等着。\n……你不介意等一会儿吧？',dur:6500 },
+    { spkr:'g', name:'Guardian', txt:'Someone can see again.\nIt has been a long time.',                       dur:5500 },
+    { spkr:'g', name:'Guardian', txt:'Did you know — every book holds a person.\nWe are the ones who watch them.', dur:6500 },
+    { spkr:'g', name:'Guardian', txt:'Most of the time, they just wait here.\n…You don\'t mind waiting a while?',  dur:6500 },
   ],
   wandererIntro: [
-    { spkr:'w', name:'巡者', txt:'啊……被看到了。',                              dur:4500 },
-    { spkr:'w', name:'巡者', txt:'我只是……在找一本书。\n应该是这排的某个位置。',    dur:5500 },
-    { spkr:'w', name:'巡者', txt:'我们一起找找看？',                              dur:4500 },
+    { spkr:'w', name:'Wanderer', txt:'Ah… you can see me.',                                       dur:4500 },
+    { spkr:'w', name:'Wanderer', txt:'I\'m just… looking for a book.\nIt should be along this row.', dur:5500 },
+    { spkr:'w', name:'Wanderer', txt:'Shall we look for it together?',                            dur:4500 },
   ],
   orbs: [
     // ── Purple 1 ──
     { type:'purple', idx:0,
-      before: { spkr:'g', name:'守者', txt:'这是一个没有人读完的故事。\n它一直停在第七章。', dur:5500 },
-      after:  { spkr:'g', name:'守者', txt:'谢谢你。\n在这里，被拿起来就是被记得。',          dur:5500 }
+      before: { spkr:'g', name:'Guardian', txt:'This is a story no one ever finished.\nIt has been stuck on chapter seven.', dur:5500 },
+      after:  { spkr:'g', name:'Guardian', txt:'Thank you.\nHere, to be picked up is to be remembered.',                     dur:5500 }
     },
     // ── Blue 1 ──
     { type:'blue', idx:0,
-      before: { spkr:'w', name:'巡者', txt:'那个发光的，\n是我记住的一句话。',               dur:4500 },
-      after:  { spkr:'w', name:'巡者', txt:'「有些书，你以为自己读完了，\n其实它还在读你。」', dur:6500 }
+      before: { spkr:'w', name:'Wanderer', txt:'That glowing one —\nit\'s a line I once memorised.',                    dur:4500 },
+      after:  { spkr:'w', name:'Wanderer', txt:'"Some books — you think you\'ve finished them.\nReally, they\'re still reading you."', dur:6500 }
     },
     // ── Purple 2 ──
     { type:'purple', idx:1,
-      before: { spkr:'g', name:'守者', txt:'这本——有人每年都来借。\n借走，看完，还回来。三十几年了。', dur:6500 },
-      after:  { spkr:'g', name:'守者', txt:'你猜他最后一次来是什么时候？',                          dur:5000 }
+      before: { spkr:'g', name:'Guardian', txt:'This one — someone borrowed it every year.\nTook it, read it, brought it back. For thirty years.', dur:6500 },
+      after:  { spkr:'g', name:'Guardian', txt:'Can you guess when he last came?',                                                                  dur:5000 }
     },
     // ── Blue 2 ──
     { type:'blue', idx:1,
-      before: { spkr:'w', name:'巡者', txt:'这个是……\n某个读者在这里睡着时做的梦。',  dur:5500 },
-      after:  { spkr:'w', name:'巡者', txt:'书里的人也会睡着。\n没人读的时候，他们就在梦里活动。', dur:6000 }
+      before: { spkr:'w', name:'Wanderer', txt:'This one is…\na dream a reader had,\nwhile asleep in this room.',                  dur:5500 },
+      after:  { spkr:'w', name:'Wanderer', txt:'People in books fall asleep too.\nWhen no one is reading, they live inside dreams.', dur:6000 }
     },
     // ── Purple 3 ──
     { type:'purple', idx:2,
-      before: { spkr:'g', name:'守者', txt:'这个……\n从来没人借过。',                  dur:5000 },
-      after:  { spkr:'g', name:'守者', txt:'但被很多人摸过封面。\n这种痕迹，我们也记着。', dur:5500 }
+      before: { spkr:'g', name:'Guardian', txt:'This one…\nno one has ever borrowed it.',                                       dur:5000 },
+      after:  { spkr:'g', name:'Guardian', txt:'But many hands have touched its cover.\nThose marks — we remember those too.',  dur:5500 }
     },
     // ── Blue 3 (with followup) ──
     { type:'blue', idx:2,
-      before: { spkr:'w', name:'巡者', txt:'最后这个……\n是我来这里的原因。\n只是……我忘了是什么了。', dur:6500 },
-      after:  { spkr:'w', name:'巡者', txt:'你还记得吗？', dur:3500,
-        followup: { spkr:'g', name:'守者', txt:'记得。\n我们就是因为这个才留在这里的。', dur:6000 }
+      before: { spkr:'w', name:'Wanderer', txt:'This last one…\nis the reason I came here.\nI just… can\'t remember what it was.', dur:6500 },
+      after:  { spkr:'w', name:'Wanderer', txt:'Do you remember?', dur:3500,
+        followup: { spkr:'g', name:'Guardian', txt:'I do.\nThat is why we are still here.', dur:6000 }
       }
     },
   ],
   act4: [
-    { spkr:'g', name:'守者', txt:'你帮我们把好多东西都找回来了。',          dur:5500 },
-    { spkr:'w', name:'巡者', txt:'……谢谢。\n有时候连我们自己都会忘掉一些。', dur:5500 },
-    { spkr:'g', name:'守者', txt:'这里的每本书，我们看着它们。\n有人来，有人走。', dur:6000 },
-    { spkr:'w', name:'巡者', txt:'现在你也看到了。\n所以……这里也是你的了。',  dur:6000 },
+    { spkr:'g', name:'Guardian', txt:'You\'ve helped us find so many things again.',                  dur:5500 },
+    { spkr:'w', name:'Wanderer', txt:'…Thank you.\nSometimes even we forget what we keep.',           dur:5500 },
+    { spkr:'g', name:'Guardian', txt:'Every book on these shelves — we watch over them.\nPeople come, people go.', dur:6000 },
+    { spkr:'w', name:'Wanderer', txt:'Now you\'ve seen us too.\nSo… this place belongs to you as well.', dur:6000 },
   ],
   act5: [
-    { spkr:'g', name:'守者', txt:'下次来的时候，\n随便拿一本书。', dur:6500 },
-    { spkr:'g', name:'守者', txt:'我们在等的，\n就是这个。',       dur:7500 },
+    { spkr:'g', name:'Guardian', txt:'Next time you come,\njust pick up any book.', dur:6500 },
+    { spkr:'g', name:'Guardian', txt:'That\'s what we\'ve been waiting for.',       dur:7500 },
   ]
 };
 
@@ -629,18 +628,18 @@ function enterAR() {
   cacheDOM();
   D.hint.style.display = 'block';
   D.counter.style.display = 'block';
-  D.hint.textContent = '正在进入体验……';
+  D.hint.textContent = 'Entering the experience…';
 
   // Listen for AR session events on A-Frame scene
   D.scene.addEventListener('enter-vr', () => {
     // Whether VR or AR — we entered immersive mode
     if (D.scene.is('ar-mode')) {
       window._arMode = true;
-      D.hint.textContent = '感受书架间渗出的光……';
+      D.hint.textContent = 'Light is seeping through the shelves…';
     } else {
       // Fell back to VR mode (no passthrough). Still works.
       window._arMode = true;
-      D.hint.textContent = '感受书架间渗出的光（VR 模式）……';
+      D.hint.textContent = 'Light is seeping through the shelves… (VR mode)';
     }
   });
 
@@ -713,7 +712,7 @@ function enableDesktopMode() {
   // alpha:true = canvas is transparent, so styling the body shows through
   document.body.style.background =
     'radial-gradient(ellipse at 50% 30%, #1a004d 0%, #08001a 55%, #000 100%)';
-  D.hint.textContent = '💻 桌面预览模式 · 拖动鼠标环顾';
+  D.hint.textContent = '💻 Desktop preview · drag mouse to look around';
   // Enable mouse look-controls for desktop preview so users can see characters
   if (D.cam) {
     D.cam.setAttribute('look-controls', 'pointerLockEnabled:false; reverseMouseDrag:false');
@@ -731,7 +730,7 @@ function bindTick() {
 // ────────────────────────────────────────────────
 async function startExperience() {
   phase = 'act1';
-  D.hint.textContent = '感受书架间渗出的光……';
+  D.hint.textContent = 'Light is seeping through the shelves…';
   // Act 1 ambient: Desktop 2s preview, Quest AR full 12s atmosphere
   await sleep(window._desktopMode ? 2000 : 12000);
   await act2_guardian();
@@ -741,7 +740,7 @@ async function act2_guardian() {
   phase = 'act2g';
   D.guardian.setAttribute('visible', true);
   animLight(D.gPoint, 0.5, 3000);
-  D.hint.textContent = '守者出现了……';
+  D.hint.textContent = 'The Guardian appears…';
   await sleep(1200);
   await playLines(SCRIPT.guardianIntro);
   await sleep(1800);
@@ -752,7 +751,7 @@ async function act2_wanderer() {
   phase = 'act2w';
   D.wanderer.setAttribute('visible', true);
   animLight(D.wPoint, 0.5, 3000);
-  D.hint.textContent = '巡者从书架侧面出现……';
+  D.hint.textContent = 'The Wanderer drifts in from the side…';
   await sleep(1200);
   await playLines(SCRIPT.wandererIntro);
   await sleep(2000);
@@ -761,7 +760,7 @@ async function act2_wanderer() {
 
 async function act3_collect() {
   phase = 'act3';
-  D.hint.textContent = '靠近紫色光点 | 凝视蓝色光点2秒';
+  D.hint.textContent = 'Reach the purple orbs · Gaze 2s at the blue ones';
   for (let i = 0; i < SCRIPT.orbs.length; i++) {
     orbPhase = i;
     await runOrb(SCRIPT.orbs[i]);
@@ -814,7 +813,7 @@ async function runOrb(orbData) {
 
 async function act4_confluence() {
   phase = 'act4';
-  D.hint.textContent = '光网覆盖书架……';
+  D.hint.textContent = 'A web of light spreads across the shelves…';
   D.lightWeb.setAttribute('visible', true);
   await sleep(800);
   await playLines(SCRIPT.act4);
@@ -830,7 +829,7 @@ async function act5_farewell() {
   await sleep(1800);
   fadeEntity(D.guardian, 6000);
   await sleep(6500);
-  D.hint.textContent = '✦ 体验结束 · 感谢您的到来 ✦';
+  D.hint.textContent = '✦ End of the experience · Thank you for visiting ✦';
   hideHUD();
   phase = 'done';
 }
@@ -949,7 +948,7 @@ function playLine(line) {
       isG ? 'color:#9922ff; shader:flat; transparent:true; opacity:0.9'
           : 'color:#2255ff; shader:flat; transparent:true; opacity:0.9');
     D.hudSpkr.setAttribute('color', isG ? '#cc88ff' : '#88bbff');
-    D.hudSpkr.setAttribute('value', line.name || (isG ? '守者':'巡者'));
+    D.hudSpkr.setAttribute('value', line.name || (isG ? 'Guardian':'Wanderer'));
     D.hudTxt.setAttribute('value', line.txt);
     D.hud.setAttribute('visible', true);
 
