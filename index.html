@@ -95,7 +95,7 @@ body { background:#000; overflow:hidden; }
   renderer="antialias:true; alpha:true; colorManagement:true"
   vr-mode-ui="enabled:false"
   device-orientation-permission-ui="enabled:false"
-  background="color:#000000">
+  background="transparent: true">
 
   <a-assets timeout="10000">
     <!-- ═══ GUARDIAN portrait (PNG with transparent background) ═══ -->
@@ -627,60 +627,44 @@ function enterAR() {
   cacheDOM();
   D.hint.style.display = 'block';
   D.counter.style.display = 'block';
-  D.hint.textContent = 'Requesting XR session…';
+  D.hint.textContent = 'Entering experience…';
 
-  // Tick & experience timer
+  // ── Enter-XR event handlers ───────────────────
+  function onEnterXR() {
+    window._arMode = true;
+    // Force WebGL canvas to clear to fully transparent so Quest shows passthrough
+    try { D.scene.renderer.setClearColor(new THREE.Color(0, 0, 0), 0); } catch(e) {}
+    D.hint.textContent = 'Light is seeping through the shelves…';
+  }
+  D.scene.addEventListener('enter-ar', onEnterXR, { once: true });
+  D.scene.addEventListener('enter-vr', onEnterXR, { once: true });
+  D.scene.addEventListener('exit-ar', () => { window._arMode = false; });
+  D.scene.addEventListener('exit-vr', () => { window._arMode = false; });
+
+  // ── Tick binding & experience start ──────────
   if (D.scene.hasLoaded) bindTick();
   else D.scene.addEventListener('loaded', bindTick, { once: true });
   setTimeout(startExperience, 3500);
 
-  // Desktop fallback (no WebXR at all)
+  // ── XR session entry ─────────────────────────
+  // No WebXR at all → desktop preview
   if (!navigator.xr) { enableDesktopMode(); return; }
 
-  // CRITICAL: call requestSession IMMEDIATELY from the click handler.
-  // Any await / isSessionSupported() BEFORE requestSession() can drop the
-  // user-gesture token and Quest silently rejects the session request.
-  // We go straight to requestSession('immersive-ar') and fall back on
-  // rejection — no pre-checks needed.
-  navigator.xr.requestSession('immersive-ar', {
-    requiredFeatures: ['local-floor'],
-    optionalFeatures: ['dom-overlay', 'hand-tracking'],
-  })
-  .then(session => {
-    D.hint.textContent = 'AR session open — setting up renderer…';
-    return activateXRSession(session, true);
-  })
-  .catch(arErr => {
-    console.warn('immersive-ar rejected:', arErr);
-    D.hint.textContent = 'AR not available — trying VR…';
-    return navigator.xr.requestSession('immersive-vr', {
-      requiredFeatures: ['local-floor'],
-    })
-    .then(session => activateXRSession(session, false))
-    .catch(vrErr => {
-      console.warn('immersive-vr also rejected:', vrErr);
-      enableDesktopMode();
-    });
+  // CRITICAL: enterAR() / enterVR() must be called DIRECTLY from the
+  // click handler with NO await/Promise before it, or the browser drops
+  // the user-gesture token and silently refuses the session request.
+  // A-Frame’s enterAR() calls navigator.xr.requestSession(‘immersive-ar’)
+  // internally, so we hand control to A-Frame here and just catch errors.
+  const arEntry = typeof D.scene.enterAR === 'function'
+    ? D.scene.enterAR()   // A-Frame 1.4+ – requests immersive-ar session
+    : D.scene.enterVR();  // older A-Frame fallback
+
+  arEntry.catch(arErr => {
+    console.warn('AR entry failed:', arErr);
+    D.hint.textContent = 'AR unavailable — switching to VR…';
+    D.scene.enterVR().catch(() => enableDesktopMode());
   });
 }
-
-// Wire a raw XR session directly into A-Frame's Three.js renderer
-function activateXRSession(session, isAR) {
-  window._arMode = true;
-  const renderer = D.scene.renderer;
-  // Force WebGL canvas to clear to fully transparent so Quest shows passthrough
-  renderer.setClearColor(new THREE.Color(0, 0, 0), 0);
-  renderer.xr.enabled = true;
-  // Enforce transparent clear on every frame
-  D.scene.addEventListener('render-started', () => renderer.setClearAlpha(0));
-  D.hint.textContent = isAR
-    ? 'Light is seeping through the shelves…'
-    : 'Light is seeping through the shelves… (VR mode)';
-  session.addEventListener('end', () => { window._arMode = false; });
-  // Hand renderer the session — Three.js switches to XR render loop
-  return renderer.xr.setSession(session);
-}
-
 function enableDesktopMode() {
   if (window._desktopMode) return;
   window._desktopMode = true;
@@ -760,8 +744,7 @@ async function runOrb(orbData) {
   }
 
   waitCollect = true;
-  // Auto-advance after 12 s so story never permanently stalls if
-  // proximity/gaze detection doesn't trigger in this environment
+  // Auto-advance after 12 s so story never permanently stalls
   const _autoAdv = setTimeout(() => {
     if (onCollect) { const cb = onCollect; onCollect = null; waitCollect = false; cb(); }
   }, 12000);
