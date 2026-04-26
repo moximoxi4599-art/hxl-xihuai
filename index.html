@@ -91,7 +91,7 @@ body { background:#000; overflow:hidden; }
 <!-- ════════════════ A-FRAME SCENE ════════════════ -->
 <a-scene
   id="scene"
-  webxr="requiredFeatures: local-floor; optionalFeatures: hand-tracking, bounded-floor"
+  webxr="requiredFeatures: local-floor; optionalFeatures: dom-overlay, hand-tracking, bounded-floor"
   renderer="antialias:true; alpha:true; colorManagement:true"
   vr-mode-ui="enabled:true; enterARButton: #btn-fallback-ar"
   device-orientation-permission-ui="enabled:false"
@@ -142,12 +142,12 @@ body { background:#000; overflow:hidden; }
         </a-plane>
         <!-- Speaker label -->
         <a-text id="hud-speaker" value="Guardian" color="#cc88ff"
-          position="-0.74 0.13 0.003" width="0.6" font="roboto" align="left"
+          position="-0.74 0.13 0.003" width="0.6" align="left"
           letter-spacing="2">
         </a-text>
         <!-- Dialogue text -->
         <a-text id="hud-text" value="" color="#e8ddff"
-          position="-0.74 -0.03 0.003" width="1.4" font="roboto"
+          position="-0.74 -0.03 0.003" width="1.4"
           wrap-count="40" line-height="42" align="left">
         </a-text>
       </a-entity>
@@ -630,22 +630,20 @@ function enterAR() {
   D.counter.style.display = 'block';
   D.hint.textContent = 'Entering the experience…';
 
-  // Listen for AR session events on A-Frame scene
+  // Listen for AR/VR session events on A-Frame scene
+  // 'enter-ar' fires when immersive-ar session starts (Quest passthrough)
+  D.scene.addEventListener('enter-ar', () => {
+    window._arMode = true;
+    D.hint.textContent = 'Light is seeping through the shelves…';
+  });
+  // 'enter-vr' fires when immersive-vr session starts (fallback)
   D.scene.addEventListener('enter-vr', () => {
-    // Whether VR or AR — we entered immersive mode
-    if (D.scene.is('ar-mode')) {
-      window._arMode = true;
-      D.hint.textContent = 'Light is seeping through the shelves…';
-    } else {
-      // Fell back to VR mode (no passthrough). Still works.
-      window._arMode = true;
-      D.hint.textContent = 'Light is seeping through the shelves… (VR mode)';
-    }
+    window._arMode = true;
+    D.hint.textContent = 'Light is seeping through the shelves… (VR mode)';
   });
 
-  D.scene.addEventListener('exit-vr', () => {
-    window._arMode = false;
-  });
+  D.scene.addEventListener('exit-ar', () => { window._arMode = false; });
+  D.scene.addEventListener('exit-vr', () => { window._arMode = false; });
 
   // CRITICAL: must be called synchronously inside the click handler so the
   // user-gesture token reaches navigator.xr.requestSession().
@@ -657,9 +655,9 @@ function enterAR() {
     // Prefer immersive-ar (Quest passthrough). Fallback to immersive-vr.
     navigator.xr.isSessionSupported('immersive-ar').then(arSupported => {
       if (arSupported) {
-        // A-Frame's enterVR(true) requests an AR session.
-        D.scene.enterVR(true).catch(err => {
-          console.warn('enterVR(true) [AR] failed:', err);
+        // enterAR() is the correct A-Frame 1.5 method for passthrough AR
+        D.scene.enterAR().catch(err => {
+          console.warn('enterAR() failed:', err);
           // Try plain VR fallback
           D.scene.enterVR().catch(e2 => {
             console.warn('enterVR() fallback failed:', e2);
