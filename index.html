@@ -90,7 +90,7 @@ body { background:#000; overflow:hidden; }
 <!-- ════════════════ A-FRAME SCENE ════════════════ -->
 <a-scene
   id="scene"
-  webxr="requiredFeatures: local-floor; optionalFeatures: hand-tracking, bounded-floor"
+  webxr="optionalFeatures: local-floor; optionalFeatures: hand-tracking, bounded-floor"
   renderer="antialias:true; alpha:true; colorManagement:true"
   vr-mode-ui="enabled:false"
   background="color:transparent">
@@ -627,7 +627,7 @@ function enterAR() {
   D.counter.style.display = 'block';
   D.hint.textContent = '正在进入体验……';
 
-  D.scene.enterVR(); // enters immersive-ar on Quest 3
+  D.scene.enterAR(); // enters immersive-ar on Quest 3
 
   // Hook tick after scene loads
   if (D.scene.hasLoaded) {
