@@ -95,7 +95,7 @@ body { background:#000; overflow:hidden; }
   renderer="antialias:true; alpha:true; colorManagement:true"
   vr-mode-ui="enabled:true; enterARButton: #btn-fallback-ar"
   device-orientation-permission-ui="enabled:false"
-  background="color:transparent">
+  background="transparent: true">
 
   <a-assets timeout="10000">
     <!-- ═══ GUARDIAN portrait (PNG with transparent background) ═══ -->
@@ -630,54 +630,48 @@ function enterAR() {
   D.counter.style.display = 'block';
   D.hint.textContent = 'Entering the experience…';
 
-  // Listen for AR/VR session events on A-Frame scene
-  // 'enter-ar' fires when immersive-ar session starts (Quest passthrough)
+  // Listen for AR/VR session events
   D.scene.addEventListener('enter-ar', () => {
     window._arMode = true;
     D.hint.textContent = 'Light is seeping through the shelves…';
   });
-  // 'enter-vr' fires when immersive-vr session starts (fallback)
   D.scene.addEventListener('enter-vr', () => {
     window._arMode = true;
     D.hint.textContent = 'Light is seeping through the shelves… (VR mode)';
   });
-
   D.scene.addEventListener('exit-ar', () => { window._arMode = false; });
   D.scene.addEventListener('exit-vr', () => { window._arMode = false; });
 
   // CRITICAL: must be called synchronously inside the click handler so the
   // user-gesture token reaches navigator.xr.requestSession().
-  function tryEnterImmersive() {
-    if (!navigator.xr) {
-      enableDesktopMode();
-      return;
-    }
-    // Prefer immersive-ar (Quest passthrough). Fallback to immersive-vr.
-    navigator.xr.isSessionSupported('immersive-ar').then(arSupported => {
-      if (arSupported) {
-        // enterAR() is the correct A-Frame 1.5 method for passthrough AR
-        D.scene.enterAR().catch(err => {
-          console.warn('enterAR() failed:', err);
-          // Try plain VR fallback
-          D.scene.enterVR().catch(e2 => {
-            console.warn('enterVR() fallback failed:', e2);
-            enableDesktopMode();
-          });
-        });
-      } else {
-        // No AR support — try VR
-        navigator.xr.isSessionSupported('immersive-vr').then(vrSupported => {
-          if (vrSupported) {
-            D.scene.enterVR().catch(err => {
-              console.warn('enterVR() failed:', err);
-              enableDesktopMode();
-            });
-          } else {
-            enableDesktopMode();
-          }
-        });
+  async function tryEnterImmersive() {
+    if (!navigator.xr) { enableDesktopMode(); return; }
+
+    const arSupported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
+    if (arSupported) {
+      // enterAR() is the correct A-Frame 1.5 method for passthrough AR
+      if (typeof D.scene.enterAR === 'function') {
+        try { await D.scene.enterAR(); return; } catch(e) { console.warn('enterAR() failed:', e); }
       }
-    }).catch(() => enableDesktopMode());
+      // Direct WebXR fallback if A-Frame enterAR() unavailable
+      try {
+        const session = await navigator.xr.requestSession('immersive-ar', {
+          requiredFeatures: ['local-floor'],
+          optionalFeatures: ['dom-overlay'],
+        });
+        D.scene.renderer.xr.setSession(session);
+        window._arMode = true;
+        D.hint.textContent = 'Light is seeping through the shelves…';
+        return;
+      } catch(e2) { console.warn('direct requestSession(ar) failed:', e2); }
+    }
+
+    const vrSupported = await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
+    if (vrSupported) {
+      try { await D.scene.enterVR(); return; } catch(e) { console.warn('enterVR() failed:', e); }
+    }
+
+    enableDesktopMode();
   }
 
   // Make sure scene is ready before requesting session
@@ -729,8 +723,8 @@ function bindTick() {
 async function startExperience() {
   phase = 'act1';
   D.hint.textContent = 'Light is seeping through the shelves…';
-  // Act 1 ambient: Desktop 2s preview, Quest AR full 12s atmosphere
-  await sleep(window._desktopMode ? 2000 : 12000);
+  // Short atmosphere pause before characters appear
+  await sleep(3000);
   await act2_guardian();
 }
 
@@ -784,7 +778,12 @@ async function runOrb(orbData) {
   }
 
   waitCollect = true;
+  // Auto-advance after 12 seconds so story never permanently stalls
+  const autoTimer = setTimeout(() => {
+    if (onCollect) { const cb = onCollect; onCollect = null; waitCollect = false; cb(); }
+  }, 12000);
   await new Promise(res => { onCollect = res; });
+  clearTimeout(autoTimer);
   waitCollect = false;
 
   // Hide orb + flash
