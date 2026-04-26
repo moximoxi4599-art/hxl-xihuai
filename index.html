@@ -91,12 +91,25 @@ body { background:#000; overflow:hidden; }
 <!-- ════════════════ A-FRAME SCENE ════════════════ -->
 <a-scene
   id="scene"
-  webxr="optionalFeatures: local-floor, local, hand-tracking, bounded-floor, hit-test"
+  webxr="requiredFeatures: local-floor; optionalFeatures: hand-tracking, bounded-floor"
   renderer="antialias:true; alpha:true; colorManagement:true"
-  vr-mode-ui="enabled:false"
+  vr-mode-ui="enabled:true; enterARButton: #btn-fallback-ar"
+  device-orientation-permission-ui="enabled:false"
   background="color:transparent">
 
-  <a-assets timeout="3000"></a-assets>
+  <a-assets timeout="10000">
+    <!-- ═══ 守者 GUARDIAN: 你自己绘制的立绘(PNG, 透明背景) ═══ -->
+    <img id="tex-guardian" crossorigin="anonymous" src="assets/guardian.png"/>
+
+    <!-- 守者周围的紫色光晕 (SVG, 程序生成) -->
+    <img id="tex-guardian-aura" crossorigin="anonymous" src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 800"><defs><radialGradient id="ga" cx="50%" cy="40%"><stop offset="0%" stop-color="%23cc77ff" stop-opacity="0.6"/><stop offset="40%" stop-color="%238822dd" stop-opacity="0.3"/><stop offset="100%" stop-color="%23000000" stop-opacity="0"/></radialGradient></defs><ellipse cx="250" cy="320" rx="220" ry="380" fill="url(%23ga)"/></svg>'/>
+
+    <!-- ═══ 巡者 WANDERER: 你自己绘制的立绘(PNG, 透明背景) ═══ -->
+    <img id="tex-wanderer" crossorigin="anonymous" src="assets/wanderer.png"/>
+
+    <!-- 巡者周围的蓝色光晕 -->
+    <img id="tex-wanderer-aura" crossorigin="anonymous" src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 800"><defs><radialGradient id="wa" cx="50%" cy="40%"><stop offset="0%" stop-color="%2377aaff" stop-opacity="0.6"/><stop offset="40%" stop-color="%232255cc" stop-opacity="0.3"/><stop offset="100%" stop-color="%23000000" stop-opacity="0"/></radialGradient></defs><ellipse cx="250" cy="320" rx="220" ry="380" fill="url(%23wa)"/></svg>'/>
+  </a-assets>
 
   <!-- ── CAMERA RIG ── -->
   <a-entity id="rig">
@@ -214,100 +227,65 @@ body { background:#000; overflow:hidden; }
   </a-entity>
 
   <!-- ══════════════════════════════════════════════════
-       GUARDIAN 守者 — Purple spirit, appears left of center
-       World position: (-0.55, 0, -1.0)
+       GUARDIAN 守者 — Purple spirit billboard sprite
+       Always faces camera. SVG portrait set via JS at runtime.
   ══════════════════════════════════════════════════ -->
-  <a-entity id="guardian" visible="false" position="-0.55 0 -1.0">
-
-    <!-- Ethereal head -->
-    <a-sphere id="g-head" position="0 1.76 0" radius="0.135"
-      material="shader:flat; emissive:#6611cc; emissiveIntensity:1.3; color:#9933ff; transparent:true; opacity:0.88"
-      animation__pulse="property:material.emissiveIntensity; from:0.9; to:1.7; dir:alternate; dur:2300; loop:true">
-    </a-sphere>
-    <!-- Outer head glow -->
-    <a-sphere position="0 1.76 0" radius="0.24"
-      material="shader:flat; emissive:#9944ff; emissiveIntensity:0.25; color:#9944ff; transparent:true; opacity:0.16"
-      animation="property:scale; from:0.88 0.88 0.88; to:1.14 1.14 1.14; dir:alternate; dur:2700; loop:true">
-    </a-sphere>
-    <!-- Body torso -->
-    <a-cylinder position="0 1.28 0" radius="0.092" height="0.65"
-      material="shader:flat; emissive:#4d0fbf; emissiveIntensity:0.85; color:#6622dd; transparent:true; opacity:0.78">
-    </a-cylinder>
-    <!-- Left arm -->
-    <a-cylinder position="-0.21 1.4 0" radius="0.042" height="0.44" rotation="0 0 24"
-      material="shader:flat; emissive:#5511bb; emissiveIntensity:0.75; color:#6622cc; transparent:true; opacity:0.68">
-    </a-cylinder>
-    <!-- Right arm -->
-    <a-cylinder position="0.21 1.4 0" radius="0.042" height="0.44" rotation="0 0 -24"
-      material="shader:flat; emissive:#5511bb; emissiveIntensity:0.75; color:#6622cc; transparent:true; opacity:0.68">
-    </a-cylinder>
-    <!-- Legs -->
-    <a-cylinder position="-0.075 0.8 0" radius="0.052" height="0.54"
-      material="shader:flat; emissive:#3d0d9e; emissiveIntensity:0.65; color:#5211bb; transparent:true; opacity:0.72">
-    </a-cylinder>
-    <a-cylinder position="0.075 0.8 0" radius="0.052" height="0.54"
-      material="shader:flat; emissive:#3d0d9e; emissiveIntensity:0.65; color:#5211bb; transparent:true; opacity:0.72">
-    </a-cylinder>
+  <a-entity id="guardian" visible="false" position="-0.55 1.4 -1.0" look-at-camera>
+    <!-- Soft outer aura (rear plane, larger, blurred glow) -->
+    <a-plane width="1.6" height="2.0" position="0 0 -0.02"
+      material="shader:flat; src:#tex-guardian-aura; transparent:true; opacity:0.55; alphaTest:0.01"
+      animation__pulse="property:material.opacity; from:0.4; to:0.7; dir:alternate; dur:2400; loop:true">
+    </a-plane>
+    <!-- Main character portrait -->
+    <a-plane id="g-portrait" width="1.0" height="1.6" position="0 0 0"
+      material="shader:flat; src:#tex-guardian; transparent:true; opacity:0.95; alphaTest:0.01"
+      animation__float="property:position; from:0 -0.03 0; to:0 0.03 0; dir:alternate; dur:3200; loop:true; easing:easeInOutSine">
+    </a-plane>
     <!-- Floating spirit orbs around guardian -->
-    <a-sphere position="0.3 1.62 0.1" radius="0.024"
+    <a-sphere position="0.42 0.36 0.05" radius="0.026"
       material="shader:flat; emissive:#ee88ff; emissiveIntensity:2.5; color:#ee88ff; transparent:true; opacity:0.92"
-      animation="property:position; from:0.3 1.62 0.1; to:0.38 1.98 0.18; dir:alternate; dur:3400; loop:true">
+      animation="property:position; from:0.42 0.36 0.05; to:0.5 0.62 0.12; dir:alternate; dur:3400; loop:true">
     </a-sphere>
-    <a-sphere position="-0.34 1.58 -0.06" radius="0.019"
+    <a-sphere position="-0.46 0.28 -0.04" radius="0.02"
       material="shader:flat; emissive:#dd77ff; emissiveIntensity:2.5; color:#dd77ff; transparent:true; opacity:0.88"
-      animation="property:position; from:-0.34 1.58 -0.06; to:-0.26 1.94 0.1; dir:alternate; dur:2800; loop:true; delay:600">
+      animation="property:position; from:-0.46 0.28 -0.04; to:-0.36 0.58 0.08; dir:alternate; dur:2800; loop:true; delay:600">
     </a-sphere>
-    <a-sphere position="0.06 2.06 0.14" radius="0.016"
+    <a-sphere position="0.08 0.78 0.1" radius="0.018"
       material="shader:flat; emissive:#cc99ff; emissiveIntensity:2.5; color:#cc99ff; transparent:true; opacity:0.82"
-      animation="property:position; from:0.06 2.06 0.14; to:0.22 2.38 -0.04; dir:alternate; dur:4100; loop:true; delay:1200">
+      animation="property:position; from:0.08 0.78 0.1; to:0.22 1.0 -0.03; dir:alternate; dur:4100; loop:true; delay:1200">
     </a-sphere>
-    <a-sphere position="-0.12 1.35 0.18" radius="0.014"
+    <a-sphere position="-0.18 -0.18 0.12" radius="0.014"
       material="shader:flat; emissive:#bb88ff; emissiveIntensity:2; color:#bb88ff; transparent:true; opacity:0.75"
-      animation="property:position; from:-0.12 1.35 0.18; to:0.08 1.68 0.25; dir:alternate; dur:3700; loop:true; delay:900">
+      animation="property:position; from:-0.18 -0.18 0.12; to:0.06 0.1 0.18; dir:alternate; dur:3700; loop:true; delay:900">
     </a-sphere>
   </a-entity>
 
   <!-- ══════════════════════════════════════════════════
-       WANDERER 巡者 — Blue spirit, appears right side
-       World position: (1.1, 0, -1.0)
+       WANDERER 巡者 — Blue spirit billboard sprite
   ══════════════════════════════════════════════════ -->
-  <a-entity id="wanderer" visible="false" position="1.1 0 -1.0">
-
-    <a-sphere id="w-head" position="0 1.76 0" radius="0.135"
-      material="shader:flat; emissive:#1144cc; emissiveIntensity:1.3; color:#3366ff; transparent:true; opacity:0.88"
-      animation__pulse="property:material.emissiveIntensity; from:0.9; to:1.7; dir:alternate; dur:2300; loop:true; delay:380">
-    </a-sphere>
-    <a-sphere position="0 1.76 0" radius="0.24"
-      material="shader:flat; emissive:#4488ff; emissiveIntensity:0.25; color:#4488ff; transparent:true; opacity:0.16"
-      animation="property:scale; from:0.88 0.88 0.88; to:1.14 1.14 1.14; dir:alternate; dur:2700; loop:true; delay:180">
-    </a-sphere>
-    <a-cylinder position="0 1.28 0" radius="0.092" height="0.65"
-      material="shader:flat; emissive:#1133bb; emissiveIntensity:0.85; color:#2255dd; transparent:true; opacity:0.78">
-    </a-cylinder>
-    <a-cylinder position="-0.21 1.4 0" radius="0.042" height="0.44" rotation="0 0 24"
-      material="shader:flat; emissive:#1133bb; emissiveIntensity:0.75; color:#2244cc; transparent:true; opacity:0.68">
-    </a-cylinder>
-    <a-cylinder position="0.21 1.4 0" radius="0.042" height="0.44" rotation="0 0 -24"
-      material="shader:flat; emissive:#1133bb; emissiveIntensity:0.75; color:#2244cc; transparent:true; opacity:0.68">
-    </a-cylinder>
-    <a-cylinder position="-0.075 0.8 0" radius="0.052" height="0.54"
-      material="shader:flat; emissive:#0d2999; emissiveIntensity:0.65; color:#1d3dbb; transparent:true; opacity:0.72">
-    </a-cylinder>
-    <a-cylinder position="0.075 0.8 0" radius="0.052" height="0.54"
-      material="shader:flat; emissive:#0d2999; emissiveIntensity:0.65; color:#1d3dbb; transparent:true; opacity:0.72">
-    </a-cylinder>
+  <a-entity id="wanderer" visible="false" position="1.1 1.4 -1.0" look-at-camera>
+    <!-- Soft outer aura -->
+    <a-plane width="1.6" height="2.0" position="0 0 -0.02"
+      material="shader:flat; src:#tex-wanderer-aura; transparent:true; opacity:0.55; alphaTest:0.01"
+      animation__pulse="property:material.opacity; from:0.4; to:0.7; dir:alternate; dur:2400; loop:true; delay:380">
+    </a-plane>
+    <!-- Main character portrait -->
+    <a-plane id="w-portrait" width="1.0" height="1.6" position="0 0 0"
+      material="shader:flat; src:#tex-wanderer; transparent:true; opacity:0.95; alphaTest:0.01"
+      animation__float="property:position; from:0 -0.03 0; to:0 0.03 0; dir:alternate; dur:3000; loop:true; easing:easeInOutSine; delay:200">
+    </a-plane>
     <!-- Wanderer spirit orbs -->
-    <a-sphere position="-0.3 1.62 0.1" radius="0.024"
+    <a-sphere position="-0.42 0.36 0.05" radius="0.026"
       material="shader:flat; emissive:#88ccff; emissiveIntensity:2.5; color:#88ccff; transparent:true; opacity:0.92"
-      animation="property:position; from:-0.3 1.62 0.1; to:-0.42 1.98 0.18; dir:alternate; dur:3100; loop:true">
+      animation="property:position; from:-0.42 0.36 0.05; to:-0.5 0.62 0.12; dir:alternate; dur:3100; loop:true">
     </a-sphere>
-    <a-sphere position="0.32 1.55 -0.05" radius="0.019"
+    <a-sphere position="0.44 0.3 -0.04" radius="0.02"
       material="shader:flat; emissive:#aaddff; emissiveIntensity:2.5; color:#aaddff; transparent:true; opacity:0.88"
-      animation="property:position; from:0.32 1.55 -0.05; to:0.44 1.9 0.1; dir:alternate; dur:2600; loop:true; delay:550">
+      animation="property:position; from:0.44 0.3 -0.04; to:0.54 0.58 0.08; dir:alternate; dur:2600; loop:true; delay:550">
     </a-sphere>
-    <a-sphere position="0.08 2.05 0.12" radius="0.016"
+    <a-sphere position="0.1 0.78 0.08" radius="0.018"
       material="shader:flat; emissive:#99bbff; emissiveIntensity:2.5; color:#99bbff; transparent:true; opacity:0.82"
-      animation="property:position; from:0.08 2.05 0.12; to:-0.1 2.36 -0.05; dir:alternate; dur:3900; loop:true; delay:1000">
+      animation="property:position; from:0.1 0.78 0.08; to:-0.08 1.0 -0.04; dir:alternate; dur:3900; loop:true; delay:1000">
     </a-sphere>
   </a-entity>
 
@@ -519,6 +497,29 @@ body { background:#000; overflow:hidden; }
 'use strict';
 
 // ────────────────────────────────────────────────
+// COMPONENT: billboard — always face camera (Y-axis only)
+// ────────────────────────────────────────────────
+AFRAME.registerComponent('look-at-camera', {
+  init: function () {
+    this.cam = document.querySelector('[camera]');
+    this._v = new THREE.Vector3();
+  },
+  tick: function () {
+    if (!this.cam) {
+      this.cam = document.querySelector('[camera]');
+      if (!this.cam) return;
+    }
+    const camObj = this.cam.object3D;
+    const myObj = this.el.object3D;
+    camObj.getWorldPosition(this._v);
+    // Only rotate around Y axis so character stays upright
+    const dx = this._v.x - myObj.position.x;
+    const dz = this._v.z - myObj.position.z;
+    myObj.rotation.y = Math.atan2(dx, dz);
+  }
+});
+
+// ────────────────────────────────────────────────
 // NARRATIVE SCRIPT
 // ────────────────────────────────────────────────
 const SCRIPT = {
@@ -623,32 +624,78 @@ function cacheDOM() {
 // ENTRY POINT
 // ────────────────────────────────────────────────
 function enterAR() {
+  // Hide overlay
   document.getElementById('overlay').style.display = 'none';
   cacheDOM();
   D.hint.style.display = 'block';
   D.counter.style.display = 'block';
   D.hint.textContent = '正在进入体验……';
 
-  // CRITICAL: enterAR() MUST be called synchronously inside the click handler.
-  // Any await before requestSession() destroys the user gesture context and
-  // Quest browser will reject the AR session silently.
-  if (navigator.xr) {
-    D.scene.enterAR(); // synchronous call — hands gesture to WebXR immediately
-  } else {
-    enableDesktopMode();
+  // Listen for AR session events on A-Frame scene
+  D.scene.addEventListener('enter-vr', () => {
+    // Whether VR or AR — we entered immersive mode
+    if (D.scene.is('ar-mode')) {
+      window._arMode = true;
+      D.hint.textContent = '感受书架间渗出的光……';
+    } else {
+      // Fell back to VR mode (no passthrough). Still works.
+      window._arMode = true;
+      D.hint.textContent = '感受书架间渗出的光（VR 模式）……';
+    }
+  });
+
+  D.scene.addEventListener('exit-vr', () => {
+    window._arMode = false;
+  });
+
+  // CRITICAL: must be called synchronously inside the click handler so the
+  // user-gesture token reaches navigator.xr.requestSession().
+  function tryEnterImmersive() {
+    if (!navigator.xr) {
+      enableDesktopMode();
+      return;
+    }
+    // Prefer immersive-ar (Quest passthrough). Fallback to immersive-vr.
+    navigator.xr.isSessionSupported('immersive-ar').then(arSupported => {
+      if (arSupported) {
+        // A-Frame's enterVR(true) requests an AR session.
+        D.scene.enterVR(true).catch(err => {
+          console.warn('enterVR(true) [AR] failed:', err);
+          // Try plain VR fallback
+          D.scene.enterVR().catch(e2 => {
+            console.warn('enterVR() fallback failed:', e2);
+            enableDesktopMode();
+          });
+        });
+      } else {
+        // No AR support — try VR
+        navigator.xr.isSessionSupported('immersive-vr').then(vrSupported => {
+          if (vrSupported) {
+            D.scene.enterVR().catch(err => {
+              console.warn('enterVR() failed:', err);
+              enableDesktopMode();
+            });
+          } else {
+            enableDesktopMode();
+          }
+        });
+      }
+    }).catch(() => enableDesktopMode());
   }
 
-  // Listen for whether AR actually started
-  D.scene.addEventListener('enter-vr', () => {
-    // AR session started successfully — passthrough is active
-    window._arMode = true;
-    D.hint.textContent = '感受书架间渗出的光……';
-  }, { once: true });
+  // Make sure scene is ready before requesting session
+  if (D.scene.hasLoaded) {
+    tryEnterImmersive();
+  } else {
+    D.scene.addEventListener('loaded', tryEnterImmersive, { once: true });
+  }
 
-  // If AR didn't start within 2.5 seconds, fall back to desktop mode
+  // Safety net: if nothing happened in 4s, drop to desktop preview
   setTimeout(() => {
-    if (!window._arMode) enableDesktopMode();
-  }, 2500);
+    if (!window._arMode && !window._desktopMode) {
+      enableDesktopMode();
+    }
+  }, 4000);
 
   // Hook tick after scene loads
   if (D.scene.hasLoaded) {
@@ -666,7 +713,11 @@ function enableDesktopMode() {
   // alpha:true = canvas is transparent, so styling the body shows through
   document.body.style.background =
     'radial-gradient(ellipse at 50% 30%, #1a004d 0%, #08001a 55%, #000 100%)';
-  D.hint.textContent = '💻 桌面预览模式（无 AR）';
+  D.hint.textContent = '💻 桌面预览模式 · 拖动鼠标环顾';
+  // Enable mouse look-controls for desktop preview so users can see characters
+  if (D.cam) {
+    D.cam.setAttribute('look-controls', 'pointerLockEnabled:false; reverseMouseDrag:false');
+  }
 }
 
 function bindTick() {
