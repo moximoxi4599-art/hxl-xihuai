@@ -92,9 +92,9 @@ body { background:#000; overflow:hidden; }
 <a-scene
   id="scene"
   webxr="optionalFeatures: local-floor, local, hand-tracking, bounded-floor, hit-test"
-  renderer="antialias:true; alpha:true; colorManagement:true"
+  renderer="antialias:true; alpha:false; colorManagement:true"
   vr-mode-ui="enabled:false"
-  background="color:transparent">
+  background="color:#08001a">
 
   <a-assets timeout="3000"></a-assets>
 
@@ -638,9 +638,11 @@ async function enterAR() {
 
   if (arSupported) {
     try {
+      // AR passthrough needs alpha:true
+      D.scene.setAttribute('renderer', 'antialias:true; alpha:true; colorManagement:true');
+      D.scene.setAttribute('background', 'color:transparent');
       await D.scene.enterAR();
     } catch(e) {
-      console.warn('enterAR() failed:', e);
       enableDesktopMode();
     }
   } else {
@@ -658,11 +660,26 @@ async function enterAR() {
 }
 
 function enableDesktopMode() {
-  // Show dark space background for desktop / non-AR preview
+  window._desktopMode = true;
+  // 1. Set A-Frame background component
   D.scene.setAttribute('background', 'color:#08001a');
-  // Make sure guardian and characters are eventually visible for testing
-  D.hint.textContent = '💻 桌面预览模式 · 非AR（Quest 需 HTTPS）';
-  console.info('Running in desktop preview mode (WebXR AR not available).');
+  // 2. Force WebGL renderer clear color (overrides alpha:true transparent canvas)
+  const applyRendererFix = () => {
+    const renderer = D.scene.renderer;
+    if (renderer) {
+      renderer.setClearColor(0x08001a, 1.0);
+      renderer.setClearAlpha(1.0);
+    }
+    const canvas = document.querySelector('canvas');
+    if (canvas) canvas.style.background = '#08001a';
+  };
+  if (D.scene.hasLoaded) {
+    applyRendererFix();
+  } else {
+    D.scene.addEventListener('loaded', applyRendererFix, { once: true });
+  }
+  D.hint.textContent = '💻 桌面预览模式（Quest AR 需 HTTPS）';
+  console.info('Desktop preview mode active.');
 }
 
 function bindTick() {
@@ -678,8 +695,8 @@ async function startExperience() {
   phase = 'act1';
   D.hint.textContent = '感受书架间渗出的光……';
   // Act 1 ambient runs via CSS animations (rays fade in automatically)
-  // Shortened to 12s for practical demo
-  await sleep(12000);
+  // Desktop: 2s; Quest AR: 12s full atmosphere
+  await sleep(window._desktopMode ? 2000 : 12000);
   await act2_guardian();
 }
 
