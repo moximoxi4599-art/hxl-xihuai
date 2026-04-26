@@ -93,9 +93,9 @@ body { background:#000; overflow:hidden; }
   id="scene"
   webxr="requiredFeatures: local-floor; optionalFeatures: dom-overlay, hand-tracking, bounded-floor"
   renderer="antialias:true; alpha:true; colorManagement:true"
-  vr-mode-ui="enabled:true; enterARButton: #btn-fallback-ar"
+  vr-mode-ui="enabled:false"
   device-orientation-permission-ui="enabled:false"
-  background="transparent: true">
+  background="color:#000000">
 
   <a-assets timeout="10000">
     <!-- ═══ GUARDIAN portrait (PNG with transparent background) ═══ -->
@@ -623,79 +623,62 @@ function cacheDOM() {
 // ENTRY POINT
 // ────────────────────────────────────────────────
 function enterAR() {
-  // Hide overlay
   document.getElementById('overlay').style.display = 'none';
   cacheDOM();
   D.hint.style.display = 'block';
   D.counter.style.display = 'block';
-  D.hint.textContent = 'Entering the experience…';
+  D.hint.textContent = 'Requesting XR session…';
 
-  // Listen for AR/VR session events
-  D.scene.addEventListener('enter-ar', () => {
-    window._arMode = true;
-    D.hint.textContent = 'Light is seeping through the shelves…';
-  });
-  D.scene.addEventListener('enter-vr', () => {
-    window._arMode = true;
-    D.hint.textContent = 'Light is seeping through the shelves… (VR mode)';
-  });
-  D.scene.addEventListener('exit-ar', () => { window._arMode = false; });
-  D.scene.addEventListener('exit-vr', () => { window._arMode = false; });
-
-  // CRITICAL: must be called synchronously inside the click handler so the
-  // user-gesture token reaches navigator.xr.requestSession().
-  async function tryEnterImmersive() {
-    if (!navigator.xr) { enableDesktopMode(); return; }
-
-    const arSupported = await navigator.xr.isSessionSupported('immersive-ar').catch(() => false);
-    if (arSupported) {
-      // enterAR() is the correct A-Frame 1.5 method for passthrough AR
-      if (typeof D.scene.enterAR === 'function') {
-        try { await D.scene.enterAR(); return; } catch(e) { console.warn('enterAR() failed:', e); }
-      }
-      // Direct WebXR fallback if A-Frame enterAR() unavailable
-      try {
-        const session = await navigator.xr.requestSession('immersive-ar', {
-          requiredFeatures: ['local-floor'],
-          optionalFeatures: ['dom-overlay'],
-        });
-        D.scene.renderer.xr.setSession(session);
-        window._arMode = true;
-        D.hint.textContent = 'Light is seeping through the shelves…';
-        return;
-      } catch(e2) { console.warn('direct requestSession(ar) failed:', e2); }
-    }
-
-    const vrSupported = await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
-    if (vrSupported) {
-      try { await D.scene.enterVR(); return; } catch(e) { console.warn('enterVR() failed:', e); }
-    }
-
-    enableDesktopMode();
-  }
-
-  // Make sure scene is ready before requesting session
-  if (D.scene.hasLoaded) {
-    tryEnterImmersive();
-  } else {
-    D.scene.addEventListener('loaded', tryEnterImmersive, { once: true });
-  }
-
-  // Safety net: if nothing happened in 4s, drop to desktop preview
-  setTimeout(() => {
-    if (!window._arMode && !window._desktopMode) {
-      enableDesktopMode();
-    }
-  }, 4000);
-
-  // Hook tick after scene loads
-  if (D.scene.hasLoaded) {
-    bindTick();
-  } else {
-    D.scene.addEventListener('loaded', bindTick, { once: true });
-  }
-
+  // Tick & experience timer
+  if (D.scene.hasLoaded) bindTick();
+  else D.scene.addEventListener('loaded', bindTick, { once: true });
   setTimeout(startExperience, 3500);
+
+  // Desktop fallback (no WebXR at all)
+  if (!navigator.xr) { enableDesktopMode(); return; }
+
+  // CRITICAL: call requestSession IMMEDIATELY from the click handler.
+  // Any await / isSessionSupported() BEFORE requestSession() can drop the
+  // user-gesture token and Quest silently rejects the session request.
+  // We go straight to requestSession('immersive-ar') and fall back on
+  // rejection — no pre-checks needed.
+  navigator.xr.requestSession('immersive-ar', {
+    requiredFeatures: ['local-floor'],
+    optionalFeatures: ['dom-overlay', 'hand-tracking'],
+  })
+  .then(session => {
+    D.hint.textContent = 'AR session open — setting up renderer…';
+    return activateXRSession(session, true);
+  })
+  .catch(arErr => {
+    console.warn('immersive-ar rejected:', arErr);
+    D.hint.textContent = 'AR not available — trying VR…';
+    return navigator.xr.requestSession('immersive-vr', {
+      requiredFeatures: ['local-floor'],
+    })
+    .then(session => activateXRSession(session, false))
+    .catch(vrErr => {
+      console.warn('immersive-vr also rejected:', vrErr);
+      enableDesktopMode();
+    });
+  });
+}
+
+// Wire a raw XR session directly into A-Frame's Three.js renderer
+function activateXRSession(session, isAR) {
+  window._arMode = true;
+  const renderer = D.scene.renderer;
+  // Force WebGL canvas to clear to fully transparent so Quest shows passthrough
+  renderer.setClearColor(new THREE.Color(0, 0, 0), 0);
+  renderer.xr.enabled = true;
+  // Enforce transparent clear on every frame
+  D.scene.addEventListener('render-started', () => renderer.setClearAlpha(0));
+  D.hint.textContent = isAR
+    ? 'Light is seeping through the shelves…'
+    : 'Light is seeping through the shelves… (VR mode)';
+  session.addEventListener('end', () => { window._arMode = false; });
+  // Hand renderer the session — Three.js switches to XR render loop
+  return renderer.xr.setSession(session);
 }
 
 function enableDesktopMode() {
@@ -723,8 +706,7 @@ function bindTick() {
 async function startExperience() {
   phase = 'act1';
   D.hint.textContent = 'Light is seeping through the shelves…';
-  // Short atmosphere pause before characters appear
-  await sleep(3000);
+  await sleep(3000); // brief atmosphere pause
   await act2_guardian();
 }
 
@@ -778,12 +760,13 @@ async function runOrb(orbData) {
   }
 
   waitCollect = true;
-  // Auto-advance after 12 seconds so story never permanently stalls
-  const autoTimer = setTimeout(() => {
+  // Auto-advance after 12 s so story never permanently stalls if
+  // proximity/gaze detection doesn't trigger in this environment
+  const _autoAdv = setTimeout(() => {
     if (onCollect) { const cb = onCollect; onCollect = null; waitCollect = false; cb(); }
   }, 12000);
   await new Promise(res => { onCollect = res; });
-  clearTimeout(autoTimer);
+  clearTimeout(_autoAdv);
   waitCollect = false;
 
   // Hide orb + flash
