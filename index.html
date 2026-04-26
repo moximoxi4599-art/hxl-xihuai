@@ -78,8 +78,9 @@ body { background:#000; overflow:hidden; }
   <div class="instructions">
     <span>① 站在图书馆书架前 约 1 米处</span><br>
     <span>② 佩戴好 Meta Quest 3</span><br>
-    <span>③ 在 Quest 浏览器中打开此页面</span><br>
-    <span>④ 点击下方按钮，进入 AR 世界</span>
+    <span>③ 在 Quest 浏览器中打开此页面（需 <b style="color:#ee99ff">HTTPS</b>）</span><br>
+    <span>④ 点击下方按钮，进入 AR 世界</span><br>
+    <span style="color:#554477; font-size:0.85em">💻 电脑端：桌面预览模式（无 AR）</span>
   </div>
   <button id="btn" onclick="enterAR()">✦ 进入体验 ✦</button>
 </div>
@@ -620,14 +621,31 @@ function cacheDOM() {
 // ────────────────────────────────────────────────
 // ENTRY POINT
 // ────────────────────────────────────────────────
-function enterAR() {
+async function enterAR() {
   document.getElementById('overlay').style.display = 'none';
   cacheDOM();
   D.hint.style.display = 'block';
   D.counter.style.display = 'block';
   D.hint.textContent = '正在进入体验……';
 
-  D.scene.enterAR(); // enters immersive-ar on Quest 3
+  // Check WebXR AR support (requires HTTPS + Quest/compatible browser)
+  let arSupported = false;
+  try {
+    arSupported = navigator.xr
+      ? await navigator.xr.isSessionSupported('immersive-ar')
+      : false;
+  } catch(e) { arSupported = false; }
+
+  if (arSupported) {
+    try {
+      await D.scene.enterAR();
+    } catch(e) {
+      console.warn('enterAR() failed:', e);
+      enableDesktopMode();
+    }
+  } else {
+    enableDesktopMode();
+  }
 
   // Hook tick after scene loads
   if (D.scene.hasLoaded) {
@@ -637,6 +655,14 @@ function enterAR() {
   }
 
   setTimeout(startExperience, 3500);
+}
+
+function enableDesktopMode() {
+  // Show dark space background for desktop / non-AR preview
+  D.scene.setAttribute('background', 'color:#08001a');
+  // Make sure guardian and characters are eventually visible for testing
+  D.hint.textContent = '💻 桌面预览模式 · 非AR（Quest 需 HTTPS）';
+  console.info('Running in desktop preview mode (WebXR AR not available).');
 }
 
 function bindTick() {
