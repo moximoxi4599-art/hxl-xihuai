@@ -97,18 +97,37 @@ body { background:#000; overflow:hidden; }
   device-orientation-permission-ui="enabled:false"
   background="transparent: true">
 
-  <a-assets timeout="10000">
+  <!--
+    External PNG portraits at:
+      ./assets/guardian.png
+      ./assets/wanderer.png
+
+    IMPORTANT: do NOT add `crossorigin="anonymous"` to these <img> tags.
+    With that attribute the browser fetches the image in CORS mode and
+    requires an `Access-Control-Allow-Origin` response header. file://
+    and most local dev servers (Live Server, `python -m http.server`,
+    plain nginx without CORS configured, …) don't send that header,
+    so the request fails — and A-Frame silently never uploads the
+    texture, leaving the portrait planes blank even though the PNGs
+    exist on disk and are visible if you open them directly.
+    Same-origin <img> loads work as untainted WebGL textures without
+    the attribute, which is what we want here.
+
+    timeout="3000": short cap so a slow PNG can't stall the
+    'loaded' event for the original 10 s.
+  -->
+  <a-assets timeout="3000">
     <!-- ═══ GUARDIAN portrait (PNG with transparent background) ═══ -->
-    <img id="tex-guardian" crossorigin="anonymous" src="assets/guardian.png"/>
+    <img id="tex-guardian" src="assets/guardian.png"/>
 
     <!-- Soft purple aura around the Guardian (auto-generated SVG) -->
-    <img id="tex-guardian-aura" crossorigin="anonymous" src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 800"><defs><radialGradient id="ga" cx="50%" cy="40%"><stop offset="0%" stop-color="%23cc77ff" stop-opacity="0.6"/><stop offset="40%" stop-color="%238822dd" stop-opacity="0.3"/><stop offset="100%" stop-color="%23000000" stop-opacity="0"/></radialGradient></defs><ellipse cx="250" cy="320" rx="220" ry="380" fill="url(%23ga)"/></svg>'/>
+    <img id="tex-guardian-aura" src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 800"><defs><radialGradient id="ga" cx="50%" cy="40%"><stop offset="0%" stop-color="%23cc77ff" stop-opacity="0.6"/><stop offset="40%" stop-color="%238822dd" stop-opacity="0.3"/><stop offset="100%" stop-color="%23000000" stop-opacity="0"/></radialGradient></defs><ellipse cx="250" cy="320" rx="220" ry="380" fill="url(%23ga)"/></svg>'/>
 
     <!-- ═══ WANDERER portrait (PNG with transparent background) ═══ -->
-    <img id="tex-wanderer" crossorigin="anonymous" src="assets/wanderer.png"/>
+    <img id="tex-wanderer" src="assets/wanderer.png"/>
 
     <!-- Soft blue aura around the Wanderer -->
-    <img id="tex-wanderer-aura" crossorigin="anonymous" src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 800"><defs><radialGradient id="wa" cx="50%" cy="40%"><stop offset="0%" stop-color="%2377aaff" stop-opacity="0.6"/><stop offset="40%" stop-color="%232255cc" stop-opacity="0.3"/><stop offset="100%" stop-color="%23000000" stop-opacity="0"/></radialGradient></defs><ellipse cx="250" cy="320" rx="220" ry="380" fill="url(%23wa)"/></svg>'/>
+    <img id="tex-wanderer-aura" src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 800"><defs><radialGradient id="wa" cx="50%" cy="40%"><stop offset="0%" stop-color="%2377aaff" stop-opacity="0.6"/><stop offset="40%" stop-color="%232255cc" stop-opacity="0.3"/><stop offset="100%" stop-color="%23000000" stop-opacity="0"/></radialGradient></defs><ellipse cx="250" cy="320" rx="220" ry="380" fill="url(%23wa)"/></svg>'/>
   </a-assets>
 
   <!-- ── CAMERA RIG ── -->
@@ -653,17 +672,30 @@ function enterAR() {
   // CRITICAL: enterAR() / enterVR() must be called DIRECTLY from the
   // click handler with NO await/Promise before it, or the browser drops
   // the user-gesture token and silently refuses the session request.
-  // A-Frame’s enterAR() calls navigator.xr.requestSession(‘immersive-ar’)
+  // A-Frame's enterAR() calls navigator.xr.requestSession('immersive-ar')
   // internally, so we hand control to A-Frame here and just catch errors.
-  const arEntry = typeof D.scene.enterAR === 'function'
-    ? D.scene.enterAR()   // A-Frame 1.4+ – requests immersive-ar session
-    : D.scene.enterVR();  // older A-Frame fallback
+  // The whole block is wrapped in try/catch so a synchronous throw
+  // (e.g. older A-Frame with no enterAR) cannot abort the rest of
+  // setup — startExperience() is already scheduled above and must run.
+  try {
+    const arEntry = typeof D.scene.enterAR === 'function'
+      ? D.scene.enterAR()   // A-Frame 1.4+ – requests immersive-ar session
+      : D.scene.enterVR();  // older A-Frame fallback
 
-  arEntry.catch(arErr => {
-    console.warn('AR entry failed:', arErr);
-    D.hint.textContent = 'AR unavailable — switching to VR…';
-    D.scene.enterVR().catch(() => enableDesktopMode());
-  });
+    if (arEntry && typeof arEntry.catch === 'function') {
+      arEntry.catch(arErr => {
+        console.warn('AR entry failed:', arErr);
+        D.hint.textContent = 'AR unavailable — switching to preview…';
+        D.scene.enterVR().catch(() => enableDesktopMode());
+      });
+    } else {
+      // Non-Promise return → likely already failed, fall back.
+      enableDesktopMode();
+    }
+  } catch (err) {
+    console.warn('XR entry threw synchronously:', err);
+    enableDesktopMode();
+  }
 }
 function enableDesktopMode() {
   if (window._desktopMode) return;
@@ -681,8 +713,17 @@ function enableDesktopMode() {
 function bindTick() {
   if (tickBound) return;
   tickBound = true;
-  D.scene.addEventListener('tick', onTick);
+  // FIX: A-Frame's <a-scene> does NOT emit a DOM 'tick' event.
+  // tick() is a component-level lifecycle callback, so we register a
+  // tiny component on the scene whose tick() forwards to onTick().
+  // Without this, proximity / gaze detection never fires and orb
+  // collection only advances via the 12 s auto-advance fallback.
+  D.scene.setAttribute('xp-tick', '');
 }
+
+AFRAME.registerComponent('xp-tick', {
+  tick: function () { onTick(); }
+});
 
 // ────────────────────────────────────────────────
 // EXPERIENCE FLOW  (async/await narrative engine)
