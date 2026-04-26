@@ -92,9 +92,9 @@ body { background:#000; overflow:hidden; }
 <a-scene
   id="scene"
   webxr="optionalFeatures: local-floor, local, hand-tracking, bounded-floor, hit-test"
-  renderer="antialias:true; alpha:false; colorManagement:true"
+  renderer="antialias:true; alpha:true; colorManagement:true"
   vr-mode-ui="enabled:false"
-  background="color:#08001a">
+  background="color:transparent">
 
   <a-assets timeout="3000"></a-assets>
 
@@ -618,36 +618,37 @@ function cacheDOM() {
   D.grings   = [0,1,2].map(i => document.getElementById('gring'+i));
 }
 
+
 // ────────────────────────────────────────────────
 // ENTRY POINT
 // ────────────────────────────────────────────────
-async function enterAR() {
+function enterAR() {
   document.getElementById('overlay').style.display = 'none';
   cacheDOM();
   D.hint.style.display = 'block';
   D.counter.style.display = 'block';
   D.hint.textContent = '正在进入体验……';
 
-  // Check WebXR AR support (requires HTTPS + Quest/compatible browser)
-  let arSupported = false;
-  try {
-    arSupported = navigator.xr
-      ? await navigator.xr.isSessionSupported('immersive-ar')
-      : false;
-  } catch(e) { arSupported = false; }
-
-  if (arSupported) {
-    try {
-      // AR passthrough needs alpha:true
-      D.scene.setAttribute('renderer', 'antialias:true; alpha:true; colorManagement:true');
-      D.scene.setAttribute('background', 'color:transparent');
-      await D.scene.enterAR();
-    } catch(e) {
-      enableDesktopMode();
-    }
+  // CRITICAL: enterAR() MUST be called synchronously inside the click handler.
+  // Any await before requestSession() destroys the user gesture context and
+  // Quest browser will reject the AR session silently.
+  if (navigator.xr) {
+    D.scene.enterAR(); // synchronous call — hands gesture to WebXR immediately
   } else {
     enableDesktopMode();
   }
+
+  // Listen for whether AR actually started
+  D.scene.addEventListener('enter-vr', () => {
+    // AR session started successfully — passthrough is active
+    window._arMode = true;
+    D.hint.textContent = '感受书架间渗出的光……';
+  }, { once: true });
+
+  // If AR didn't start within 2.5 seconds, fall back to desktop mode
+  setTimeout(() => {
+    if (!window._arMode) enableDesktopMode();
+  }, 2500);
 
   // Hook tick after scene loads
   if (D.scene.hasLoaded) {
@@ -660,26 +661,12 @@ async function enterAR() {
 }
 
 function enableDesktopMode() {
+  if (window._desktopMode) return;
   window._desktopMode = true;
-  // 1. Set A-Frame background component
-  D.scene.setAttribute('background', 'color:#08001a');
-  // 2. Force WebGL renderer clear color (overrides alpha:true transparent canvas)
-  const applyRendererFix = () => {
-    const renderer = D.scene.renderer;
-    if (renderer) {
-      renderer.setClearColor(0x08001a, 1.0);
-      renderer.setClearAlpha(1.0);
-    }
-    const canvas = document.querySelector('canvas');
-    if (canvas) canvas.style.background = '#08001a';
-  };
-  if (D.scene.hasLoaded) {
-    applyRendererFix();
-  } else {
-    D.scene.addEventListener('loaded', applyRendererFix, { once: true });
-  }
-  D.hint.textContent = '💻 桌面预览模式（Quest AR 需 HTTPS）';
-  console.info('Desktop preview mode active.');
+  // alpha:true = canvas is transparent, so styling the body shows through
+  document.body.style.background =
+    'radial-gradient(ellipse at 50% 30%, #1a004d 0%, #08001a 55%, #000 100%)';
+  D.hint.textContent = '💻 桌面预览模式（无 AR）';
 }
 
 function bindTick() {
@@ -694,8 +681,7 @@ function bindTick() {
 async function startExperience() {
   phase = 'act1';
   D.hint.textContent = '感受书架间渗出的光……';
-  // Act 1 ambient runs via CSS animations (rays fade in automatically)
-  // Desktop: 2s; Quest AR: 12s full atmosphere
+  // Act 1 ambient: Desktop 2s preview, Quest AR full 12s atmosphere
   await sleep(window._desktopMode ? 2000 : 12000);
   await act2_guardian();
 }
