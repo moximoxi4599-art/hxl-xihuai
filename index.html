@@ -78,7 +78,7 @@ body { background:#000; overflow:hidden; }
 </div>
 
 <div id="hint"></div>
-<div id="orb-counter">🟣 0/3 &nbsp;&nbsp; 🔵 0/3</div>
+<div id="orb-counter">🟡 0/3 排球 &nbsp; 🟣 0/3 JOJO &nbsp; 🔴 0/3 天下</div>
 
 <!-- ════════════════ A-FRAME SCENE ════════════════ -->
 <a-scene
@@ -295,128 +295,184 @@ body { background:#000; overflow:hidden; }
        Proximity threshold: 1.1m from camera center
   ══════════════════════════════════════════════════ -->
 
-  <!-- Orb P1: left shelf, chest-eye level -->
-  <a-entity id="porb0" class="purple-orb" visible="false" position="-0.72 1.42 -0.72">
+  <!-- ══ YELLOW ORBS (x3) — 排球少年 · 上排书架 · hand touch ══ -->
+  <a-entity id="porb0" class="purple-orb" visible="false" position="-0.72 1.90 -0.72">
     <a-sphere radius="0.078"
-      material="shader:flat; emissive:#bb33ff; emissiveIntensity:1.8; color:#dd55ff; transparent:true; opacity:0.96"
+      material="shader:flat; emissive:#ddaa00; emissiveIntensity:2.0; color:#ffee44; transparent:true; opacity:0.96"
       animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1350; loop:true">
     </a-sphere>
     <a-sphere radius="0.14"
-      material="shader:flat; emissive:#9922dd; emissiveIntensity:0.5; color:#aa44ee; transparent:true; opacity:0.18"
+      material="shader:flat; emissive:#aa8800; emissiveIntensity:0.5; color:#ffdd22; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2000; loop:true">
     </a-sphere>
-    <!-- Sparkle center -->
     <a-sphere radius="0.024" position="0.026 0.026 0"
       material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
     </a-sphere>
-    <a-text value="Reach" color="#dd99ff" width="0.28" align="center"
+    <a-text value="排球少年" color="#ffee88" width="0.38" align="center"
       position="0 0.22 0" material="shader:flat">
     </a-text>
   </a-entity>
 
-  <!-- Orb P2: slightly lower, left-center -->
-  <a-entity id="porb1" class="purple-orb" visible="false" position="-1.05 1.22 -0.75">
+  <!-- porb1: upper shelf center -->
+  <a-entity id="porb1" class="purple-orb" visible="false" position="0.1 1.95 -0.75">
     <a-sphere radius="0.078"
-      material="shader:flat; emissive:#bb33ff; emissiveIntensity:1.8; color:#dd55ff; transparent:true; opacity:0.96"
+      material="shader:flat; emissive:#ddaa00; emissiveIntensity:2.0; color:#ffee44; transparent:true; opacity:0.96"
       animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1550; loop:true">
     </a-sphere>
     <a-sphere radius="0.14"
-      material="shader:flat; emissive:#9922dd; emissiveIntensity:0.5; color:#aa44ee; transparent:true; opacity:0.18"
+      material="shader:flat; emissive:#aa8800; emissiveIntensity:0.5; color:#ffdd22; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2200; loop:true">
     </a-sphere>
     <a-sphere radius="0.024" position="0.026 0.026 0"
       material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
     </a-sphere>
-    <a-text value="Reach" color="#dd99ff" width="0.28" align="center"
+    <a-text value="排球少年" color="#ffee88" width="0.38" align="center"
       position="0 0.22 0" material="shader:flat">
     </a-text>
   </a-entity>
 
-  <!-- Orb P3: upper left, near eye level -->
-  <a-entity id="porb2" class="purple-orb" visible="false" position="-0.5 1.72 -0.78">
+  <!-- porb2: upper shelf right -->
+  <a-entity id="porb2" class="purple-orb" visible="false" position="0.85 1.88 -0.78">
     <a-sphere radius="0.078"
-      material="shader:flat; emissive:#bb33ff; emissiveIntensity:1.8; color:#dd55ff; transparent:true; opacity:0.96"
+      material="shader:flat; emissive:#ddaa00; emissiveIntensity:2.0; color:#ffee44; transparent:true; opacity:0.96"
       animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1150; loop:true">
     </a-sphere>
     <a-sphere radius="0.14"
-      material="shader:flat; emissive:#9922dd; emissiveIntensity:0.5; color:#aa44ee; transparent:true; opacity:0.18"
+      material="shader:flat; emissive:#aa8800; emissiveIntensity:0.5; color:#ffdd22; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:1750; loop:true">
     </a-sphere>
     <a-sphere radius="0.024" position="0.026 0.026 0"
       material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
     </a-sphere>
-    <a-text value="Reach" color="#dd99ff" width="0.28" align="center"
+    <a-text value="排球少年" color="#ffee88" width="0.38" align="center"
       position="0 0.22 0" material="shader:flat">
     </a-text>
   </a-entity>
 
   <!-- ══════════════════════════════════════════════════
-       BLUE ORBS (×3) — gaze / dwell 2s to collect
+       PURPLE ORBS (x3) — JOJO · 中排书架 · hand touch (same as yellow)
   ══════════════════════════════════════════════════ -->
 
-  <!-- Orb B1: upper right, drifting -->
-  <a-entity id="borb0" class="blue-orb" visible="false" position="0.6 1.92 -0.85">
+  <!-- borb0: middle shelf left -->
+  <a-entity id="borb0" class="blue-orb" visible="false" position="-0.6 1.42 -0.82">
     <a-sphere radius="0.078"
-      material="shader:flat; emissive:#2255ee; emissiveIntensity:1.8; color:#44aaff; transparent:true; opacity:0.96"
-      animation="property:position; from:0 0 0; to:0.16 0.11 0; dir:alternate; dur:2500; loop:true">
+      material="shader:flat; emissive:#9911ee; emissiveIntensity:1.8; color:#cc55ff; transparent:true; opacity:0.96"
+      animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1400; loop:true">
     </a-sphere>
     <a-sphere radius="0.14"
-      material="shader:flat; emissive:#1133cc; emissiveIntensity:0.5; color:#3388ff; transparent:true; opacity:0.18"
+      material="shader:flat; emissive:#7700cc; emissiveIntensity:0.5; color:#aa44ee; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2100; loop:true">
     </a-sphere>
-    <!-- Gaze progress ring -->
-    <a-torus id="gring0" radius="0.13" radius-tubular="0.007" color="#88ddff"
+    <a-torus id="gring0" radius="0.13" radius-tubular="0.007" color="#dd88ff"
       theta-length="0" rotation="0 0 90"
-      material="shader:flat; emissive:#66bbff; emissiveIntensity:2.5; transparent:true; opacity:0; color:#88ddff">
+      material="shader:flat; emissive:#bb55ff; emissiveIntensity:2.5; transparent:true; opacity:0; color:#dd88ff">
     </a-torus>
     <a-sphere radius="0.024" position="0.026 0.026 0"
       material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
     </a-sphere>
-    <a-text value="Gaze 2s" color="#88ccff" width="0.28" align="center"
+    <a-text value="JOJO" color="#dd99ff" width="0.28" align="center"
       position="0 0.22 0" material="shader:flat">
     </a-text>
   </a-entity>
 
-  <!-- Orb B2: wanderer's side, mid height -->
-  <a-entity id="borb1" class="blue-orb" visible="false" position="1.28 1.52 -0.82">
+  <!-- borb1: middle shelf center -->
+  <a-entity id="borb1" class="blue-orb" visible="false" position="0.3 1.50 -0.80">
     <a-sphere radius="0.078"
-      material="shader:flat; emissive:#2255ee; emissiveIntensity:1.8; color:#44aaff; transparent:true; opacity:0.96"
-      animation="property:position; from:0 0 0; to:0.12 0.15 0; dir:alternate; dur:2000; loop:true">
+      material="shader:flat; emissive:#9911ee; emissiveIntensity:1.8; color:#cc55ff; transparent:true; opacity:0.96"
+      animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1200; loop:true">
     </a-sphere>
     <a-sphere radius="0.14"
-      material="shader:flat; emissive:#1133cc; emissiveIntensity:0.5; color:#3388ff; transparent:true; opacity:0.18"
+      material="shader:flat; emissive:#7700cc; emissiveIntensity:0.5; color:#aa44ee; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2400; loop:true">
     </a-sphere>
-    <a-torus id="gring1" radius="0.13" radius-tubular="0.007" color="#88ddff"
+    <a-torus id="gring1" radius="0.13" radius-tubular="0.007" color="#dd88ff"
       theta-length="0" rotation="0 0 90"
-      material="shader:flat; emissive:#66bbff; emissiveIntensity:2.5; transparent:true; opacity:0; color:#88ddff">
+      material="shader:flat; emissive:#bb55ff; emissiveIntensity:2.5; transparent:true; opacity:0; color:#dd88ff">
     </a-torus>
     <a-sphere radius="0.024" position="0.026 0.026 0"
       material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
     </a-sphere>
-    <a-text value="Gaze 2s" color="#88ccff" width="0.28" align="center"
+    <a-text value="JOJO" color="#dd99ff" width="0.28" align="center"
       position="0 0.22 0" material="shader:flat">
     </a-text>
   </a-entity>
 
-  <!-- Orb B3: high center-right, look up slightly -->
-  <a-entity id="borb2" class="blue-orb" visible="false" position="0.85 2.28 -0.88">
+  <!-- borb2: middle shelf right -->
+  <a-entity id="borb2" class="blue-orb" visible="false" position="1.1 1.38 -0.84">
     <a-sphere radius="0.078"
-      material="shader:flat; emissive:#2255ee; emissiveIntensity:1.8; color:#44aaff; transparent:true; opacity:0.96"
-      animation="property:position; from:0 0 0; to:-0.1 0.09 0; dir:alternate; dur:2800; loop:true">
+      material="shader:flat; emissive:#9911ee; emissiveIntensity:1.8; color:#cc55ff; transparent:true; opacity:0.96"
+      animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1600; loop:true">
     </a-sphere>
     <a-sphere radius="0.14"
-      material="shader:flat; emissive:#1133cc; emissiveIntensity:0.5; color:#3388ff; transparent:true; opacity:0.18"
+      material="shader:flat; emissive:#7700cc; emissiveIntensity:0.5; color:#aa44ee; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:1800; loop:true">
     </a-sphere>
-    <a-torus id="gring2" radius="0.13" radius-tubular="0.007" color="#88ddff"
+    <a-torus id="gring2" radius="0.13" radius-tubular="0.007" color="#dd88ff"
       theta-length="0" rotation="0 0 90"
-      material="shader:flat; emissive:#66bbff; emissiveIntensity:2.5; transparent:true; opacity:0; color:#88ddff">
+      material="shader:flat; emissive:#bb55ff; emissiveIntensity:2.5; transparent:true; opacity:0; color:#dd88ff">
     </a-torus>
     <a-sphere radius="0.024" position="0.026 0.026 0"
       material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
     </a-sphere>
-    <a-text value="Gaze 2s" color="#88ccff" width="0.28" align="center"
+    <a-text value="JOJO" color="#dd99ff" width="0.28" align="center"
+      position="0 0.22 0" material="shader:flat">
+    </a-text>
+  </a-entity>
+
+  <!-- ══════════════════════════════════════════════════
+       RED ORBS (x3) — 王者天下 · 下排书架 · hand touch
+  ══════════════════════════════════════════════════ -->
+
+  <!-- rorb0: lower shelf left -->
+  <a-entity id="rorb0" class="red-orb" visible="false" position="-0.7 1.02 -0.78">
+    <a-sphere radius="0.078"
+      material="shader:flat; emissive:#cc1100; emissiveIntensity:2.0; color:#ff4433; transparent:true; opacity:0.96"
+      animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1450; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.14"
+      material="shader:flat; emissive:#aa0000; emissiveIntensity:0.5; color:#ee2211; transparent:true; opacity:0.18"
+      animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2300; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.024" position="0.026 0.026 0"
+      material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
+    </a-sphere>
+    <a-text value="王者天下" color="#ff9988" width="0.38" align="center"
+      position="0 0.22 0" material="shader:flat">
+    </a-text>
+  </a-entity>
+
+  <!-- rorb1: lower shelf center -->
+  <a-entity id="rorb1" class="red-orb" visible="false" position="0.2 0.95 -0.76">
+    <a-sphere radius="0.078"
+      material="shader:flat; emissive:#cc1100; emissiveIntensity:2.0; color:#ff4433; transparent:true; opacity:0.96"
+      animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1250; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.14"
+      material="shader:flat; emissive:#aa0000; emissiveIntensity:0.5; color:#ee2211; transparent:true; opacity:0.18"
+      animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2000; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.024" position="0.026 0.026 0"
+      material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
+    </a-sphere>
+    <a-text value="王者天下" color="#ff9988" width="0.38" align="center"
+      position="0 0.22 0" material="shader:flat">
+    </a-text>
+  </a-entity>
+
+  <!-- rorb2: lower shelf right -->
+  <a-entity id="rorb2" class="red-orb" visible="false" position="1.0 1.08 -0.80">
+    <a-sphere radius="0.078"
+      material="shader:flat; emissive:#cc1100; emissiveIntensity:2.0; color:#ff4433; transparent:true; opacity:0.96"
+      animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1550; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.14"
+      material="shader:flat; emissive:#aa0000; emissiveIntensity:0.5; color:#ee2211; transparent:true; opacity:0.18"
+      animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:1900; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.024" position="0.026 0.026 0"
+      material="shader:flat; emissive:#ffffff; emissiveIntensity:4; color:#ffffff; transparent:true; opacity:0.95">
+    </a-sphere>
+    <a-text value="王者天下" color="#ff9988" width="0.38" align="center"
       position="0 0.22 0" material="shader:flat">
     </a-text>
   </a-entity>
@@ -534,36 +590,51 @@ const SCRIPT = {
     { spkr:'w', name:'Wanderer', txt:'Shall we look for it together?',                            dur:4500 },
   ],
   orbs: [
-    // ── Purple 1 ──
+    // ── Yellow 1 — 排球少年 (上排) ──
     { type:'purple', idx:0,
-      before: { spkr:'g', name:'Guardian', txt:'This is a story no one ever finished.\nIt has been stuck on chapter seven.', dur:5500 },
-      after:  { spkr:'g', name:'Guardian', txt:'Thank you.\nHere, to be picked up is to be remembered.',                     dur:5500 }
+      before: { spkr:'g', name:'Guardian', txt:'This glow — 排球少年.\nAll those volumes lined up on the top shelf.', dur:5500 },
+      after:  { spkr:'g', name:'Guardian', txt:'The spirit of the court.\nEvery serve and receive — still echoing here.', dur:5500 }
     },
-    // ── Blue 1 ──
-    { type:'blue', idx:0,
-      before: { spkr:'w', name:'Wanderer', txt:'That glowing one —\nit\'s a line I once memorised.',                    dur:4500 },
-      after:  { spkr:'w', name:'Wanderer', txt:'"Some books — you think you\'ve finished them.\nReally, they\'re still reading you."', dur:6500 }
-    },
-    // ── Purple 2 ──
+    // ── Yellow 2 — 排球少年 ──
     { type:'purple', idx:1,
-      before: { spkr:'g', name:'Guardian', txt:'This one — someone borrowed it every year.\nTook it, read it, brought it back. For thirty years.', dur:6500 },
-      after:  { spkr:'g', name:'Guardian', txt:'Can you guess when he last came?',                                                                  dur:5000 }
+      before: { spkr:'g', name:'Guardian', txt:'Another one — someone read this volume\nso many times the spine is almost worn through.', dur:6000 },
+      after:  { spkr:'g', name:'Guardian', txt:'That warmth you just felt?\nFifty readers, all cheering at once.', dur:5500 }
     },
-    // ── Blue 2 ──
-    { type:'blue', idx:1,
-      before: { spkr:'w', name:'Wanderer', txt:'This one is…\na dream a reader had,\nwhile asleep in this room.',                  dur:5500 },
-      after:  { spkr:'w', name:'Wanderer', txt:'People in books fall asleep too.\nWhen no one is reading, they live inside dreams.', dur:6000 }
-    },
-    // ── Purple 3 ──
+    // ── Yellow 3 — 排球少年 ──
     { type:'purple', idx:2,
-      before: { spkr:'g', name:'Guardian', txt:'This one…\nno one has ever borrowed it.',                                       dur:5000 },
-      after:  { spkr:'g', name:'Guardian', txt:'But many hands have touched its cover.\nThose marks — we remember those too.',  dur:5500 }
+      before: { spkr:'g', name:'Guardian', txt:'The last volleyball light.\nThis one was borrowed on the same day every year.', dur:5500 },
+      after:  { spkr:'g', name:'Guardian', txt:'Whoever they were —\nthey never missed a volume.', dur:5000 }
     },
-    // ── Blue 3 (with followup) ──
+    // ── Purple 1 — JOJO (中排) ──
+    { type:'blue', idx:0,
+      before: { spkr:'w', name:'Wanderer', txt:'Now the middle shelf…\nJoJo\'s Bizarre Adventure. Feel that pulse?', dur:5000 },
+      after:  { spkr:'w', name:'Wanderer', txt:'Every Stand has a name.\nEvery name, a reader gave it power.', dur:5500 }
+    },
+    // ── Purple 2 — JOJO ──
+    { type:'blue', idx:1,
+      before: { spkr:'w', name:'Wanderer', txt:'Part 4… or Part 5.\nThey blur together when you love them both.', dur:5000 },
+      after:  { spkr:'w', name:'Wanderer', txt:'You cannot rush a good arc.\nNeither could the readers who sat here.', dur:5500 }
+    },
+    // ── Purple 3 — JOJO ──
     { type:'blue', idx:2,
-      before: { spkr:'w', name:'Wanderer', txt:'This last one…\nis the reason I came here.\nI just… can\'t remember what it was.', dur:6500 },
-      after:  { spkr:'w', name:'Wanderer', txt:'Do you remember?', dur:3500,
-        followup: { spkr:'g', name:'Guardian', txt:'I do.\nThat is why we are still here.', dur:6000 }
+      before: { spkr:'w', name:'Wanderer', txt:'This last JoJo light…\nit is from a part no one has read here yet.', dur:5500 },
+      after:  { spkr:'w', name:'Wanderer', txt:'It is waiting.\nSome books choose their reader.', dur:5000 }
+    },
+    // ── Red 1 — 王者天下 (下排) ──
+    { type:'red', idx:0,
+      before: { spkr:'g', name:'Guardian', txt:'Down here — the lower shelf.\n王者天下. Ancient battles, drawn in brushstrokes.', dur:5500 },
+      after:  { spkr:'g', name:'Guardian', txt:'One volume started a fire in a reader\'s heart.\nThey borrowed the next six the same afternoon.', dur:6000 }
+    },
+    // ── Red 2 — 王者天下 ──
+    { type:'red', idx:1,
+      before: { spkr:'w', name:'Wanderer', txt:'These kingdoms…\nthey rise and fall every few hundred pages.', dur:5000 },
+      after:  { spkr:'w', name:'Wanderer', txt:'History is never finished.\nNeither are the readers who follow it.', dur:5500 }
+    },
+    // ── Red 3 — 王者天下 (with followup) ──
+    { type:'red', idx:2,
+      before: { spkr:'g', name:'Guardian', txt:'The last red light.\nI have been watching over it the longest.', dur:5000 },
+      after:  { spkr:'g', name:'Guardian', txt:'You have gathered all three.\nYellow… purple… red.', dur:5000,
+        followup: { spkr:'w', name:'Wanderer', txt:'And for a moment,\nall three shelves glowed together.', dur:5500 }
       }
     },
   ],
@@ -595,6 +666,7 @@ let dlgTimer = null;
 let tickBound = false;
 let purpleCount = 0;
 let blueCount = 0;
+let redCount = 0;
 
 // Visual feedback state — pulse strength of the active orb based on
 // how close the nearest tracked input (hand tip / controller) is to it.
@@ -617,6 +689,7 @@ function cacheDOM() {
   D.counter  = document.getElementById('orb-counter');
   D.porbs    = [0,1,2].map(i => document.getElementById('porb'+i));
   D.borbs    = [0,1,2].map(i => document.getElementById('borb'+i));
+  D.rorbs    = [0,1,2].map(i => document.getElementById('rorb'+i));
   D.grings   = [0,1,2].map(i => document.getElementById('gring'+i));
   D.leftHand  = document.getElementById('left-hand');
   D.rightHand = document.getElementById('right-hand');
@@ -730,17 +803,18 @@ function enableDesktopMode() {
     const cursor = document.createElement('a-entity');
     cursor.setAttribute('id', 'desktop-cursor');
     cursor.setAttribute('cursor', 'rayOrigin: mouse');
-    cursor.setAttribute('raycaster', 'objects: .purple-orb, .blue-orb; far: 5');
+    cursor.setAttribute('raycaster', 'objects: .purple-orb, .blue-orb, .red-orb; far: 5');
     D.scene.appendChild(cursor);
   }
   // Wire orb click → collect
-  [...D.porbs, ...D.borbs].forEach((orb) => {
+  [...D.porbs, ...D.borbs, ...D.rorbs].forEach((orb) => {
     orb.addEventListener('click', () => {
       if (!waitCollect) return;
-      const isPurple = orb.classList.contains('purple-orb');
-      if (isPurple && collectType === 'purple' && D.porbs[collectIdx] === orb) {
+      if (collectType === 'purple' && orb.classList.contains('purple-orb') && D.porbs[collectIdx] === orb) {
         fireCollect();
-      } else if (!isPurple && collectType === 'blue' && D.borbs[collectIdx] === orb) {
+      } else if (collectType === 'blue' && orb.classList.contains('blue-orb') && D.borbs[collectIdx] === orb) {
+        fireCollect();
+      } else if (collectType === 'red' && orb.classList.contains('red-orb') && D.rorbs[collectIdx] === orb) {
         fireCollect();
       }
     });
@@ -868,8 +942,10 @@ function gatherInputPositions(out) {
 // pinch) — instantly evaluates current input positions.
 const _inputBuf = [];
 function tryHandCollect() {
-  if (!waitCollect || collectType !== 'purple') return;
-  const orb = D.porbs[collectIdx];
+  if (!waitCollect) return;
+  const orb = collectType === 'purple' ? D.porbs[collectIdx]
+            : collectType === 'blue'   ? D.borbs[collectIdx]
+            :                            D.rorbs[collectIdx];
   if (!orb || !orb.getAttribute('visible')) return;
 
   orb.object3D.getWorldPosition(_v3b);
@@ -921,7 +997,7 @@ async function act2_wanderer() {
 
 async function act3_collect() {
   phase = 'act3';
-  D.hint.textContent = 'Reach out & touch the purple orbs · Gaze 2s at the blue ones';
+  D.hint.textContent = '🟡 上排=排球 · 🟣 中排=JOJO · 🔴 下排=天下 · 伸手触碰光粒';
   for (let i = 0; i < SCRIPT.orbs.length; i++) {
     orbPhase = i;
     await runOrb(SCRIPT.orbs[i]);
@@ -937,46 +1013,40 @@ async function runOrb(orbData) {
     D.porbs[orbData.idx].setAttribute('visible', true);
     collectType = 'purple';
     collectIdx = orbData.idx;
-  } else {
+  } else if (orbData.type === 'blue') {
     D.borbs[orbData.idx].setAttribute('visible', true);
-    gazeOrbEl  = D.borbs[orbData.idx];
-    gazeRingEl = D.grings[orbData.idx];
-    gazeStart  = 0;
     collectType = 'blue';
+    collectIdx = orbData.idx;
+  } else {
+    // red — 王者天下
+    D.rorbs[orbData.idx].setAttribute('visible', true);
+    collectType = 'red';
     collectIdx = orbData.idx;
   }
 
   waitCollect = true;
-  // No more auto-advance — the user must actually collect the orb,
-  // either by reaching out (purple) or holding gaze (blue). Earlier
-  // versions force-resolved after 12-25 s, which felt like the orb
-  // "just floated to me" and broke the sense of interaction.
   await new Promise(res => { onCollect = res; });
   waitCollect = false;
 
-  // Capture the orb's world position BEFORE we hide it, so the flash
-  // can burst from where the orb was, not from in front of the camera.
+  // Capture world position before hiding
   const orbEl = orbData.type === 'purple'
     ? D.porbs[orbData.idx]
-    : D.borbs[orbData.idx];
+    : orbData.type === 'blue'
+      ? D.borbs[orbData.idx]
+      : D.rorbs[orbData.idx];
   const flashPos = new THREE.Vector3();
   orbEl.object3D.getWorldPosition(flashPos);
 
-  // Hide orb + flash
-  if (orbData.type === 'purple') {
-    // Reset any scale-based proximity feedback before hiding
-    orbEl.object3D.scale.set(1, 1, 1);
-    orbProxFeedbackT = 0;
-    D.porbs[orbData.idx].setAttribute('visible', false);
-    purpleCount++;
-  } else {
-    D.borbs[orbData.idx].setAttribute('visible', false);
-    resetGazeRing(orbData.idx);
-    gazeOrbEl = null;
-    gazeStart  = 0;
-    blueCount++;
-  }
+  // Hide orb + tally
+  orbEl.object3D.scale.set(1, 1, 1);
+  orbProxFeedbackT = 0;
+  orbEl.setAttribute('visible', false);
+
+  if (orbData.type === 'purple') { purpleCount++; }
+  else if (orbData.type === 'blue') { blueCount++; }
+  else { redCount++; }
   updateCounter();
+
   spawnCollectFlash(orbData.type, flashPos);
   await sleep(500);
 
@@ -1027,18 +1097,17 @@ function onTick() {
   const camObj = D.cam.object3D;
   if (!camObj) return;
 
-  if (collectType === 'purple') {
-    tickProximity(camObj);
-  } else if (collectType === 'blue') {
-    tickGaze(camObj);
-  }
+  // All three orb types now use hand-proximity collection
+  tickProximity(camObj);
 }
 
 const HAND_COLLECT_DIST = 0.25;   // 25cm — hand tip / controller within this triggers grab
 const HAND_FEEDBACK_DIST = 0.55;  // start visual highlight when hand within 55cm
 
 function tickProximity(camObj) {
-  const orb = D.porbs[collectIdx];
+  const orb = collectType === 'purple' ? D.porbs[collectIdx]
+            : collectType === 'blue'   ? D.borbs[collectIdx]
+            :                            D.rorbs[collectIdx];
   if (!orb || !orb.getAttribute('visible')) return;
 
   orb.object3D.getWorldPosition(_v3b);
@@ -1055,13 +1124,12 @@ function tickProximity(camObj) {
   // ── Visual feedback as hand approaches ─────────────────────────
   applyOrbProximityFeedback(orb, bestDist);
 
-  // ── Debug HUD line so the user can SEE what tracking sees ─────
+  const emoji = collectType === 'purple' ? '🟡' : collectType === 'blue' ? '🟣' : '🔴';
+  const label = collectType === 'purple' ? '排球少年' : collectType === 'blue' ? 'JOJO' : '王者天下';
   if (D.hint && _inputBuf.length > 0) {
-    D.hint.textContent =
-      `🟣 Reach the purple orb — closest input: ${(bestDist * 100).toFixed(0)} cm`;
+    D.hint.textContent = `${emoji} ${label} — reach closer: ${(bestDist * 100).toFixed(0)} cm`;
   } else if (D.hint) {
-    D.hint.textContent =
-      `🟣 No hand / controller tracked yet — show your hands to the headset`;
+    D.hint.textContent = `${emoji} ${label} — show your hands to the headset`;
   }
 
   // ── Trigger collection on touch ───────────────────────────────
@@ -1323,8 +1391,12 @@ function hideHUD() {
 // VFX HELPERS
 // ────────────────────────────────────────────────
 function spawnCollectFlash(type, worldPos) {
-  const color = type === 'purple' ? '#dd77ff' : '#77bbff';
-  const emissive = type === 'purple' ? '#cc55ff' : '#5599ff';
+  const color   = type === 'purple' ? '#ffee44'
+                : type === 'blue'   ? '#dd77ff'
+                :                     '#ff5533';        // red
+  const emissive = type === 'purple' ? '#ffcc00'
+                 : type === 'blue'   ? '#cc55ff'
+                 :                     '#dd1100';       // red
   const flash = document.createElement('a-sphere');
   flash.setAttribute('radius', '0.18');
   flash.setAttribute('material',
@@ -1365,7 +1437,7 @@ function animLight(el, targetIntensity, dur) {
 }
 
 function updateCounter() {
-  D.counter.textContent = `🟣 ${purpleCount}/3   🔵 ${blueCount}/3`;
+  D.counter.textContent = `🟡 ${purpleCount}/3 排球   🟣 ${blueCount}/3 JOJO   🔴 ${redCount}/3 天下`;
 }
 
 // ────────────────────────────────────────────────
