@@ -18,7 +18,7 @@ body { background:#000; overflow:hidden; }
 }
 .star { position:absolute; border-radius:50%; background:#fff; pointer-events:none; }
 #overlay h1 {
-  font-size:2.4em; letter-spacing:0.15em; margin-bottom:10px;
+  font-size:2.4em; letter-spacing:0.15em; margin-bottom:50px;
   background: linear-gradient(135deg, #cc88ff, #ffffff, #88bbff);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   text-shadow: none; filter: drop-shadow(0 0 20px #8844ff88);
@@ -74,14 +74,6 @@ body { background:#000; overflow:hidden; }
 <!-- ════════════════ LANDING SCREEN ════════════════ -->
 <div id="overlay">
   <h1>Library Guardians</h1>
-  <div class="sub">A Mixed-Reality Performance</div>
-  <div class="instructions">
-    <span>① Stand about 1m in front of a bookshelf</span><br>
-    <span>② Put on your Meta Quest 3</span><br>
-    <span>③ Open this page in the Quest browser (<b style="color:#ee99ff">HTTPS</b> required)</span><br>
-    <span>④ Tap the button below to begin</span><br>
-    <span style="color:#554477; font-size:0.85em">💻 On desktop: preview mode (no AR)</span>
-  </div>
   <button id="btn" onclick="enterAR()">✦ Begin Experience ✦</button>
 </div>
 
@@ -155,8 +147,8 @@ body { background:#000; overflow:hidden; }
            font loaded from cdn.aframe.io, which silently fails to
            upload in Quest's immersive XR session and leaves the
            subtitle panel empty. Canvas-based text always renders. -->
-      <a-entity id="hud" position="0 -0.35 -1.5" visible="false">
-        <a-plane id="hud-plane" width="1.6" height="0.44"
+      <a-entity id="hud" position="0 -0.32 -1.5" visible="false">
+        <a-plane id="hud-plane" width="1.1" height="0.32"
           material="shader:flat; color:#ffffff; transparent:true; opacity:1; side:double">
         </a-plane>
       </a-entity>
@@ -1196,8 +1188,8 @@ let _hudMaterialApplied = false;
 
 function initHudCanvas() {
   dlgCanvas = document.createElement('canvas');
-  dlgCanvas.width  = 1600;   // matches plane aspect 1.6 / 0.44 ≈ 3.64
-  dlgCanvas.height = 440;
+  dlgCanvas.width  = 1100;   // matches plane aspect 1.1 / 0.32 ≈ 3.44
+  dlgCanvas.height = 320;
   dlgCtx = dlgCanvas.getContext('2d');
   dlgCtx.clearRect(0, 0, dlgCanvas.width, dlgCanvas.height);
 
@@ -1252,36 +1244,47 @@ function drawDialog(name, text, isG) {
   // Left accent bar — colour per speaker
   const barColor = isG ? '#9922ff' : '#2255ff';
   ctx.fillStyle = barColor;
-  ctx.fillRect(0, 0, 24, H);
+  ctx.fillRect(0, 0, 18, H);
 
   // Soft glow falling off to the right of the bar
-  const glow = ctx.createLinearGradient(24, 0, 110, 0);
+  const glow = ctx.createLinearGradient(18, 0, 90, 0);
   glow.addColorStop(0, isG ? 'rgba(153, 34, 255, 0.45)'
                            : 'rgba(34, 85, 255, 0.45)');
   glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
   ctx.fillStyle = glow;
-  ctx.fillRect(24, 0, 90, H);
+  ctx.fillRect(18, 0, 72, H);
 
-  // Speaker name
-  ctx.font = 'bold 46px Georgia, "Times New Roman", serif';
+  // All text is horizontally centred
+  const cx = W / 2;
+
+  // Speaker name (centred)
+  ctx.font = 'bold 36px Georgia, "Times New Roman", serif';
   ctx.fillStyle = isG ? '#cc88ff' : '#88bbff';
   ctx.textBaseline = 'top';
-  ctx.textAlign = 'left';
-  ctx.fillText(name, 70, 36);
+  ctx.textAlign = 'center';
+  ctx.fillText(name, cx, 28);
 
-  // Underline beneath speaker name
+  // Underline beneath speaker name (centred under the name)
+  const nameWidth = ctx.measureText(name).width;
   ctx.fillStyle = isG ? 'rgba(204, 136, 255, 0.45)'
                       : 'rgba(136, 187, 255, 0.45)';
-  ctx.fillRect(70, 96, 220, 2);
+  ctx.fillRect(cx - nameWidth / 2, 78, nameWidth, 2);
 
   // Dialogue text — supports \n line breaks already in SCRIPT
-  ctx.font = '40px Georgia, "Times New Roman", serif';
+  ctx.font = '32px Georgia, "Times New Roman", serif';
   ctx.fillStyle = '#e8ddff';
+  ctx.textAlign = 'center';
   const lines = text.split('\n');
-  let y = 140;
+  // Vertically centre the dialogue block within the lower portion
+  const lineHeight = 46;
+  const blockHeight = lines.length * lineHeight;
+  const dialogueAreaTop = 110;
+  const dialogueAreaBottom = H - 20;
+  const startY = dialogueAreaTop + ((dialogueAreaBottom - dialogueAreaTop) - blockHeight) / 2;
+  let y = startY;
   for (const line of lines) {
-    ctx.fillText(line, 70, y);
-    y += 60;
+    ctx.fillText(line, cx, y);
+    y += lineHeight;
   }
 
   dlgTexture.needsUpdate = true;
