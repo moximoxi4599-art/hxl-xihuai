@@ -478,6 +478,44 @@ body { background:#000; overflow:hidden; }
   </a-entity>
 
   <!-- ══════════════════════════════════════════════════
+       ZONE GUIDE GLOWS — faint invitation light at each shelf zone
+       Shown during act3 so user knows where to reach.
+       Yellow = upper (排球), Blue = middle (JOJO), Red = lower (天下)
+  ══════════════════════════════════════════════════ -->
+  <a-entity id="guide-yellow" visible="false" position="0.08 1.92 -0.85">
+    <a-sphere radius="0.055"
+      material="shader:flat; emissive:#ffee44; emissiveIntensity:1.2; color:#ffee44; transparent:true; opacity:0.55"
+      animation="property:material.opacity; from:0.35; to:0.7; dir:alternate; dur:1800; loop:true">
+    </a-sphere>
+    <a-sphere radius="0.11"
+      material="shader:flat; emissive:#ddcc00; emissiveIntensity:0.4; color:#ffee44; transparent:true; opacity:0.18"
+      animation="property:material.opacity; from:0.1; to:0.28; dir:alternate; dur:2200; loop:true">
+    </a-sphere>
+  </a-entity>
+
+  <a-entity id="guide-blue" visible="false" position="0.08 1.45 -0.85">
+    <a-sphere radius="0.055"
+      material="shader:flat; emissive:#cc55ff; emissiveIntensity:1.2; color:#cc55ff; transparent:true; opacity:0.55"
+      animation="property:material.opacity; from:0.35; to:0.7; dir:alternate; dur:2000; loop:true; delay:400">
+    </a-sphere>
+    <a-sphere radius="0.11"
+      material="shader:flat; emissive:#9911ee; emissiveIntensity:0.4; color:#cc55ff; transparent:true; opacity:0.18"
+      animation="property:material.opacity; from:0.1; to:0.28; dir:alternate; dur:2400; loop:true; delay:400">
+    </a-sphere>
+  </a-entity>
+
+  <a-entity id="guide-red" visible="false" position="0.08 1.02 -0.85">
+    <a-sphere radius="0.055"
+      material="shader:flat; emissive:#ff4433; emissiveIntensity:1.2; color:#ff4433; transparent:true; opacity:0.55"
+      animation="property:material.opacity; from:0.35; to:0.7; dir:alternate; dur:1600; loop:true; delay:800">
+    </a-sphere>
+    <a-sphere radius="0.11"
+      material="shader:flat; emissive:#cc1100; emissiveIntensity:0.4; color:#ff4433; transparent:true; opacity:0.18"
+      animation="property:material.opacity; from:0.1; to:0.28; dir:alternate; dur:2000; loop:true; delay:800">
+    </a-sphere>
+  </a-entity>
+
+  <!-- ══════════════════════════════════════════════════
        ACT 4: LIGHT WEB  — spans the bookshelf face
   ══════════════════════════════════════════════════ -->
   <a-entity id="light-web" visible="false" position="0.28 1.38 -0.99">
@@ -581,73 +619,81 @@ AFRAME.registerComponent('look-at-camera', {
 const SCRIPT = {
   guardianIntro: [
     { spkr:'g', name:'Guardian', txt:'Someone can see again.\nIt has been a long time.',                       dur:5500 },
-    { spkr:'g', name:'Guardian', txt:'Did you know — every book holds a person.\nWe are the ones who watch them.', dur:6500 },
-    { spkr:'g', name:'Guardian', txt:'Most of the time, they just wait here.\n…You don\'t mind waiting a while?',  dur:6500 },
+    { spkr:'g', name:'Guardian', txt:'Every book on these shelves holds a trace\nof the person who last held it.', dur:6500 },
+    { spkr:'g', name:'Guardian', txt:'We are the ones who watch over those traces.\n…Come. Reach toward the shelves.', dur:6500 },
   ],
   wandererIntro: [
     { spkr:'w', name:'Wanderer', txt:'Ah… you can see me.',                                       dur:4500 },
-    { spkr:'w', name:'Wanderer', txt:'I\'m just… looking for a book.\nIt should be along this row.', dur:5500 },
-    { spkr:'w', name:'Wanderer', txt:'Shall we look for it together?',                            dur:4500 },
-  ],
-  orbs: [
-    // ── Yellow 1 — 排球少年 (上排) ──
-    { type:'purple', idx:0,
-      before: { spkr:'g', name:'Guardian', txt:'This glow — 排球少年.\nAll those volumes lined up on the top shelf.', dur:5500 },
-      after:  { spkr:'g', name:'Guardian', txt:'The spirit of the court.\nEvery serve and receive — still echoing here.', dur:5500 }
-    },
-    // ── Yellow 2 — 排球少年 ──
-    { type:'purple', idx:1,
-      before: { spkr:'g', name:'Guardian', txt:'Another one — someone read this volume\nso many times the spine is almost worn through.', dur:6000 },
-      after:  { spkr:'g', name:'Guardian', txt:'That warmth you just felt?\nFifty readers, all cheering at once.', dur:5500 }
-    },
-    // ── Yellow 3 — 排球少年 ──
-    { type:'purple', idx:2,
-      before: { spkr:'g', name:'Guardian', txt:'The last volleyball light.\nThis one was borrowed on the same day every year.', dur:5500 },
-      after:  { spkr:'g', name:'Guardian', txt:'Whoever they were —\nthey never missed a volume.', dur:5000 }
-    },
-    // ── Purple 1 — JOJO (中排) ──
-    { type:'blue', idx:0,
-      before: { spkr:'w', name:'Wanderer', txt:'Now the middle shelf…\nJoJo\'s Bizarre Adventure. Feel that pulse?', dur:5000 },
-      after:  { spkr:'w', name:'Wanderer', txt:'Every Stand has a name.\nEvery name, a reader gave it power.', dur:5500 }
-    },
-    // ── Purple 2 — JOJO ──
-    { type:'blue', idx:1,
-      before: { spkr:'w', name:'Wanderer', txt:'Part 4… or Part 5.\nThey blur together when you love them both.', dur:5000 },
-      after:  { spkr:'w', name:'Wanderer', txt:'You cannot rush a good arc.\nNeither could the readers who sat here.', dur:5500 }
-    },
-    // ── Purple 3 — JOJO ──
-    { type:'blue', idx:2,
-      before: { spkr:'w', name:'Wanderer', txt:'This last JoJo light…\nit is from a part no one has read here yet.', dur:5500 },
-      after:  { spkr:'w', name:'Wanderer', txt:'It is waiting.\nSome books choose their reader.', dur:5000 }
-    },
-    // ── Red 1 — 王者天下 (下排) ──
-    { type:'red', idx:0,
-      before: { spkr:'g', name:'Guardian', txt:'Down here — the lower shelf.\n王者天下. Ancient battles, drawn in brushstrokes.', dur:5500 },
-      after:  { spkr:'g', name:'Guardian', txt:'One volume started a fire in a reader\'s heart.\nThey borrowed the next six the same afternoon.', dur:6000 }
-    },
-    // ── Red 2 — 王者天下 ──
-    { type:'red', idx:1,
-      before: { spkr:'w', name:'Wanderer', txt:'These kingdoms…\nthey rise and fall every few hundred pages.', dur:5000 },
-      after:  { spkr:'w', name:'Wanderer', txt:'History is never finished.\nNeither are the readers who follow it.', dur:5500 }
-    },
-    // ── Red 3 — 王者天下 (with followup) ──
-    { type:'red', idx:2,
-      before: { spkr:'g', name:'Guardian', txt:'The last red light.\nI have been watching over it the longest.', dur:5000 },
-      after:  { spkr:'g', name:'Guardian', txt:'You have gathered all three.\nYellow… purple… red.', dur:5000,
-        followup: { spkr:'w', name:'Wanderer', txt:'And for a moment,\nall three shelves glowed together.', dur:5500 }
-      }
-    },
+    { spkr:'w', name:'Wanderer', txt:'Three shelves. Three stories.\nYou choose where to begin.', dur:5000 },
+    { spkr:'w', name:'Wanderer', txt:'Extend your hand toward any glow\nand let the memory come to you.', dur:5500 },
   ],
   act4: [
-    { spkr:'g', name:'Guardian', txt:'You\'ve helped us find so many things again.',                  dur:5500 },
+    { spkr:'g', name:'Guardian', txt:'You reached into all three shelves.',                  dur:5500 },
     { spkr:'w', name:'Wanderer', txt:'…Thank you.\nSometimes even we forget what we keep.',           dur:5500 },
-    { spkr:'g', name:'Guardian', txt:'Every book on these shelves — we watch over them.\nPeople come, people go.', dur:6000 },
-    { spkr:'w', name:'Wanderer', txt:'Now you\'ve seen us too.\nSo… this place belongs to you as well.', dur:6000 },
+    { spkr:'g', name:'Guardian', txt:'Every worn spine, every crease in a page —\nthose are the real stories.', dur:6000 },
+    { spkr:'w', name:'Wanderer', txt:'Now you\'ve seen them too.\nThis place belongs to you as well.', dur:6000 },
   ],
   act5: [
     { spkr:'g', name:'Guardian', txt:'Next time you come,\njust pick up any book.', dur:6500 },
     { spkr:'g', name:'Guardian', txt:'That\'s what we\'ve been waiting for.',       dur:7500 },
   ]
+};
+
+// ── Zone-based orb data (observation-driven dialogue) ──
+const ZONES = {
+  yellow: {
+    label: '排球少年 · upper shelf',
+    orbs: [
+      {
+        before: { spkr:'g', name:'Guardian', txt:'This spine — do you see how worn it is?\nSomeone carried this volume a long way.', dur:5500 },
+        after:  { spkr:'g', name:'Guardian', txt:'The pages no longer lie quite flat.\nToo many hands have turned them with care.', dur:5500 }
+      },
+      {
+        before: { spkr:'g', name:'Guardian', txt:'This one sits slightly forward on the shelf.\nSomeone always puts it back… almost right.', dur:5500 },
+        after:  { spkr:'g', name:'Guardian', txt:'A small thing.\nBut we notice every small thing here.', dur:5000 }
+      },
+      {
+        before: { spkr:'g', name:'Guardian', txt:'The last volleyball memory.\nAll the volumes are in order — someone keeps it that way.', dur:5500 },
+        after:  { spkr:'g', name:'Guardian', txt:'Whoever they are —\nthey still come back.', dur:5000 }
+      },
+    ]
+  },
+  blue: {
+    label: 'JoJo · middle shelf',
+    orbs: [
+      {
+        before: { spkr:'w', name:'Wanderer', txt:'The middle shelf… JoJo\'s Bizarre Adventure.\nThe cover is newer than the others.', dur:5500 },
+        after:  { spkr:'w', name:'Wanderer', txt:'A replacement copy.\nThe first one was loved to pieces.', dur:5000 }
+      },
+      {
+        before: { spkr:'w', name:'Wanderer', txt:'This volume smells faintly different.\nI think it travelled here from somewhere else.', dur:5500 },
+        after:  { spkr:'w', name:'Wanderer', txt:'Books carry the rooms they\'ve lived in.\nYou just have to know how to listen.', dur:5500 }
+      },
+      {
+        before: { spkr:'w', name:'Wanderer', txt:'The last JoJo light.\nThis part — no one has reached it yet.', dur:5000 },
+        after:  { spkr:'w', name:'Wanderer', txt:'It is waiting.\nSome books choose their reader.', dur:5000 }
+      },
+    ]
+  },
+  red: {
+    label: '王者天下 · lower shelf',
+    orbs: [
+      {
+        before: { spkr:'g', name:'Guardian', txt:'Down here — 王者天下.\nAncient kingdoms, drawn in brushstrokes.', dur:5000 },
+        after:  { spkr:'g', name:'Guardian', txt:'The edges of this volume are soft.\nMany hands have held it open at the same page.', dur:5500 }
+      },
+      {
+        before: { spkr:'w', name:'Wanderer', txt:'These kingdoms rise and fall\nevery few hundred pages.', dur:5000 },
+        after:  { spkr:'w', name:'Wanderer', txt:'History is never finished.\nNeither are the readers who follow it.', dur:5500 }
+      },
+      {
+        before: { spkr:'g', name:'Guardian', txt:'The last red memory.\nThis one is slightly dusty — the furthest volume out.', dur:5500 },
+        after:  { spkr:'g', name:'Guardian', txt:'Not yet reached.\nBut you just did.', dur:4500,
+          followup: { spkr:'w', name:'Wanderer', txt:'All three shelves, touched at last.\nYellow… purple… red.', dur:5500 }
+        }
+      },
+    ]
+  }
 };
 
 // ────────────────────────────────────────────────
@@ -667,6 +713,13 @@ let tickBound = false;
 let purpleCount = 0;
 let blueCount = 0;
 let redCount = 0;
+
+// Zone-based state
+let zoneBusy = false;
+let zoneProgress = { yellow: 0, blue: 0, red: 0 };
+let totalCollected = 0;
+// Y-height bands for zone detection (world space, standing user)
+const ZONE_BANDS = { yellow: [1.65, 2.2], blue: [1.2, 1.65], red: [0.7, 1.2] };
 
 // Visual feedback state — pulse strength of the active orb based on
 // how close the nearest tracked input (hand tip / controller) is to it.
@@ -693,6 +746,9 @@ function cacheDOM() {
   D.grings   = [0,1,2].map(i => document.getElementById('gring'+i));
   D.leftHand  = document.getElementById('left-hand');
   D.rightHand = document.getElementById('right-hand');
+  D.guideYellow = document.getElementById('guide-yellow');
+  D.guideBlue   = document.getElementById('guide-blue');
+  D.guideRed    = document.getElementById('guide-red');
 }
 
 
@@ -997,63 +1053,110 @@ async function act2_wanderer() {
 
 async function act3_collect() {
   phase = 'act3';
-  D.hint.textContent = '🟡 上排=排球 · 🟣 中排=JOJO · 🔴 下排=天下 · 伸手触碰光粒';
-  for (let i = 0; i < SCRIPT.orbs.length; i++) {
-    orbPhase = i;
-    await runOrb(SCRIPT.orbs[i]);
-    await sleep(1400);
-  }
+
+  // Show guide glows on all three shelves
+  D.guideYellow.setAttribute('visible', true);
+  D.guideBlue.setAttribute('visible', true);
+  D.guideRed.setAttribute('visible', true);
+
+  D.hint.textContent = '🟡 Upper shelf · 🟣 Middle shelf · 🔴 Lower shelf — reach toward any glow';
+
+  // Wait until all 9 orbs collected (zone detection runs in onTick)
+  await new Promise(res => { window._act3Done = res; });
   await act4_confluence();
 }
 
-async function runOrb(orbData) {
+// ── Helper: get orb entity by zone name and index ──
+function getOrbEl(zone, idx) {
+  if (zone === 'yellow') return D.porbs[idx];
+  if (zone === 'blue')   return D.borbs[idx];
+  return D.rorbs[idx];
+}
+
+// ── Helper: get collectType string from zone name ──
+function zoneToCollectType(zone) {
+  if (zone === 'yellow') return 'purple';
+  if (zone === 'blue')   return 'blue';
+  return 'red';
+}
+
+// ── Zone activation — called when hand detected near a zone ──
+async function activateZone(zone) {
+  if (zoneBusy || phase !== 'act3') return;
+  if (zoneProgress[zone] >= 3) return;
+
+  zoneBusy = true;
+
+  // Hide guide glow for this zone while active
+  const guideEl = zone === 'yellow' ? D.guideYellow
+                : zone === 'blue'   ? D.guideBlue
+                :                     D.guideRed;
+  guideEl.setAttribute('visible', false);
+
+  const orbIdx  = zoneProgress[zone];
+  const orbData = ZONES[zone].orbs[orbIdx];
+
+  // Guardian/Wanderer speaks first — describing the physical book
   await playLine(orbData.before);
 
-  if (orbData.type === 'purple') {
-    D.porbs[orbData.idx].setAttribute('visible', true);
-    collectType = 'purple';
-    collectIdx = orbData.idx;
-  } else if (orbData.type === 'blue') {
-    D.borbs[orbData.idx].setAttribute('visible', true);
-    collectType = 'blue';
-    collectIdx = orbData.idx;
-  } else {
-    // red — 王者天下
-    D.rorbs[orbData.idx].setAttribute('visible', true);
-    collectType = 'red';
-    collectIdx = orbData.idx;
-  }
+  // Orb floats out from the shelf
+  const orbEl = getOrbEl(zone, orbIdx);
+  orbEl.setAttribute('visible', true);
 
+  // Set up collection
+  collectType = zoneToCollectType(zone);
+  collectIdx  = orbIdx;
   waitCollect = true;
+
+  const emoji = zone === 'yellow' ? '🟡' : zone === 'blue' ? '🟣' : '🔴';
+  D.hint.textContent = `${emoji} Reach into the glow to collect the memory`;
+
   await new Promise(res => { onCollect = res; });
   waitCollect = false;
 
-  // Capture world position before hiding
-  const orbEl = orbData.type === 'purple'
-    ? D.porbs[orbData.idx]
-    : orbData.type === 'blue'
-      ? D.borbs[orbData.idx]
-      : D.rorbs[orbData.idx];
+  // Flash + hide orb
   const flashPos = new THREE.Vector3();
   orbEl.object3D.getWorldPosition(flashPos);
-
-  // Hide orb + tally
-  orbEl.object3D.scale.set(1, 1, 1);
+  orbEl.object3D.scale.set(1, 1, 1);   // reset proximity-feedback scale
   orbProxFeedbackT = 0;
   orbEl.setAttribute('visible', false);
 
-  if (orbData.type === 'purple') { purpleCount++; }
-  else if (orbData.type === 'blue') { blueCount++; }
-  else { redCount++; }
+  if (zone === 'yellow') purpleCount++;
+  else if (zone === 'blue') blueCount++;
+  else redCount++;
   updateCounter();
 
-  spawnCollectFlash(orbData.type, flashPos);
+  spawnCollectFlash(collectType, flashPos);
   await sleep(500);
 
+  // After-line: reflection on what was just felt
   await playLine(orbData.after);
   if (orbData.after.followup) {
     await sleep(700);
     await playLine(orbData.after.followup);
+  }
+
+  zoneProgress[zone]++;
+  totalCollected++;
+
+  // Restore guide glow if zone not yet finished
+  if (zoneProgress[zone] < 3) {
+    guideEl.setAttribute('visible', true);
+  }
+
+  zoneBusy = false;
+
+  // Update hint
+  const remaining = 9 - totalCollected;
+  if (remaining > 0) {
+    D.hint.textContent = `${remaining} memories remain — reach toward any glow`;
+  }
+
+  // All collected → trigger act4
+  if (totalCollected >= 9 && window._act3Done) {
+    const cb = window._act3Done;
+    window._act3Done = null;
+    cb();
   }
 }
 
@@ -1092,13 +1195,20 @@ function onTick() {
   const now = Date.now();
   if (now - _lastTick < 60) return;   // ~16fps check
   _lastTick = now;
-  if (!waitCollect) return;
 
   const camObj = D.cam.object3D;
   if (!camObj) return;
 
-  // All three orb types now use hand-proximity collection
-  tickProximity(camObj);
+  // During orb collection phase: proximity detection
+  if (waitCollect) {
+    tickProximity(camObj);
+    return;
+  }
+
+  // During act3 and not busy: zone detection via hand position
+  if (phase === 'act3' && !zoneBusy) {
+    tickZoneDetection();
+  }
 }
 
 const HAND_COLLECT_DIST = 0.25;   // 25cm — hand tip / controller within this triggers grab
@@ -1138,7 +1248,40 @@ function tickProximity(camObj) {
   }
 }
 
-// Pulse / brighten the orb's outer glow as the hand gets close.
+// ── Zone detection: which shelf is the user reaching toward? ──
+// Fires activateZone() when a hand moves close to a shelf zone.
+let _lastZoneCheck = 0;
+function tickZoneDetection() {
+  const now = Date.now();
+  // Throttle to once per 300ms — we don't need frame-rate precision here
+  if (now - _lastZoneCheck < 300) return;
+  _lastZoneCheck = now;
+
+  gatherInputPositions(_inputBuf);
+  if (_inputBuf.length === 0) return;
+
+  // Find a hand that is extended toward the shelf (z < -0.35)
+  // and reasonably close (within 0.7m of shelf face at z ≈ -0.85)
+  let reachY = null;
+  for (const p of _inputBuf) {
+    if (p.z < -0.35 && p.z > -1.5) {
+      reachY = p.y;
+      break;
+    }
+  }
+  if (reachY === null) return;
+
+  // Map Y to a zone
+  let detectedZone = null;
+  for (const [zone, [lo, hi]] of Object.entries(ZONE_BANDS)) {
+    if (reachY >= lo && reachY < hi) { detectedZone = zone; break; }
+  }
+  if (!detectedZone) return;
+  if (zoneProgress[detectedZone] >= 3) return; // zone complete
+
+  // Activate!
+  activateZone(detectedZone);
+}
 // Uses the orb entity's first child <a-sphere> (the inner core)
 // scale as a quick visual "magnet" cue.
 function applyOrbProximityFeedback(orb, dist) {
