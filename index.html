@@ -263,7 +263,7 @@ body { background:#000; overflow:hidden; }
   <!-- ══════════════════════════════════════════════════
        WANDERER — Blue spirit billboard sprite
   ══════════════════════════════════════════════════ -->
-  <a-entity id="wanderer" visible="false" position="1.1 1.4 -1.0" look-at-camera>
+  <a-entity id="wanderer" visible="false" position="0.55 1.4 -0.85" look-at-camera>
     <!-- Soft outer aura -->
     <a-plane width="1.6" height="2.0" position="0 0 -0.02"
       material="shader:flat; src:#tex-wanderer-aura; transparent:true; opacity:0.55; alphaTest:0.01"
@@ -291,17 +291,18 @@ body { background:#000; overflow:hidden; }
 
   <!-- ══════════════════════════════════════════════════
        PURPLE ORBS (×3) — proximity / reach to collect
-       Positioned 0.7-0.9m in front of shelf, eye-level
-       Proximity threshold: 1.1m from camera center
+       Positioned ~50cm in front of user, eye-level.
+       Pulled in close to fit narrow standing-reading aisle.
+       Hand collect distance: 25cm (set in JS)
   ══════════════════════════════════════════════════ -->
 
   <!-- ══ YELLOW ORBS (x3) — 排球少年 · 上排书架 · hand touch ══ -->
-  <a-entity id="porb0" class="purple-orb" visible="false" position="-0.72 1.90 -0.72">
-    <a-sphere radius="0.078"
+  <a-entity id="porb0" class="purple-orb" visible="false" position="-0.42 1.85 -0.50">
+    <a-sphere radius="0.050"
       material="shader:flat; emissive:#ddaa00; emissiveIntensity:2.0; color:#ffee44; transparent:true; opacity:0.96"
       animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1350; loop:true">
     </a-sphere>
-    <a-sphere radius="0.14"
+    <a-sphere radius="0.090"
       material="shader:flat; emissive:#aa8800; emissiveIntensity:0.5; color:#ffdd22; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2000; loop:true">
     </a-sphere>
@@ -314,12 +315,12 @@ body { background:#000; overflow:hidden; }
   </a-entity>
 
   <!-- porb1: upper shelf center -->
-  <a-entity id="porb1" class="purple-orb" visible="false" position="0.1 1.95 -0.75">
-    <a-sphere radius="0.078"
+  <a-entity id="porb1" class="purple-orb" visible="false" position="0.08 1.90 -0.52">
+    <a-sphere radius="0.050"
       material="shader:flat; emissive:#ddaa00; emissiveIntensity:2.0; color:#ffee44; transparent:true; opacity:0.96"
       animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1550; loop:true">
     </a-sphere>
-    <a-sphere radius="0.14"
+    <a-sphere radius="0.090"
       material="shader:flat; emissive:#aa8800; emissiveIntensity:0.5; color:#ffdd22; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2200; loop:true">
     </a-sphere>
@@ -332,12 +333,12 @@ body { background:#000; overflow:hidden; }
   </a-entity>
 
   <!-- porb2: upper shelf right -->
-  <a-entity id="porb2" class="purple-orb" visible="false" position="0.85 1.88 -0.78">
-    <a-sphere radius="0.078"
+  <a-entity id="porb2" class="purple-orb" visible="false" position="0.55 1.85 -0.55">
+    <a-sphere radius="0.050"
       material="shader:flat; emissive:#ddaa00; emissiveIntensity:2.0; color:#ffee44; transparent:true; opacity:0.96"
       animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1150; loop:true">
     </a-sphere>
-    <a-sphere radius="0.14"
+    <a-sphere radius="0.090"
       material="shader:flat; emissive:#aa8800; emissiveIntensity:0.5; color:#ffdd22; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:1750; loop:true">
     </a-sphere>
@@ -354,12 +355,12 @@ body { background:#000; overflow:hidden; }
   ══════════════════════════════════════════════════ -->
 
   <!-- borb0: middle shelf left -->
-  <a-entity id="borb0" class="blue-orb" visible="false" position="-0.6 1.42 -0.82">
-    <a-sphere radius="0.078"
+  <a-entity id="borb0" class="blue-orb" visible="false" position="-0.38 1.42 -0.55">
+    <a-sphere radius="0.050"
       material="shader:flat; emissive:#9911ee; emissiveIntensity:1.8; color:#cc55ff; transparent:true; opacity:0.96"
       animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1400; loop:true">
     </a-sphere>
-    <a-sphere radius="0.14"
+    <a-sphere radius="0.090"
       material="shader:flat; emissive:#7700cc; emissiveIntensity:0.5; color:#aa44ee; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2100; loop:true">
     </a-sphere>
@@ -376,12 +377,12 @@ body { background:#000; overflow:hidden; }
   </a-entity>
 
   <!-- borb1: middle shelf center -->
-  <a-entity id="borb1" class="blue-orb" visible="false" position="0.3 1.50 -0.80">
-    <a-sphere radius="0.078"
+  <a-entity id="borb1" class="blue-orb" visible="false" position="0.15 1.50 -0.52">
+    <a-sphere radius="0.050"
       material="shader:flat; emissive:#9911ee; emissiveIntensity:1.8; color:#cc55ff; transparent:true; opacity:0.96"
       animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1200; loop:true">
     </a-sphere>
-    <a-sphere radius="0.14"
+    <a-sphere radius="0.090"
       material="shader:flat; emissive:#7700cc; emissiveIntensity:0.5; color:#aa44ee; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2400; loop:true">
     </a-sphere>
@@ -398,12 +399,12 @@ body { background:#000; overflow:hidden; }
   </a-entity>
 
   <!-- borb2: middle shelf right -->
-  <a-entity id="borb2" class="blue-orb" visible="false" position="1.1 1.38 -0.84">
-    <a-sphere radius="0.078"
+  <a-entity id="borb2" class="blue-orb" visible="false" position="0.62 1.40 -0.55">
+    <a-sphere radius="0.050"
       material="shader:flat; emissive:#9911ee; emissiveIntensity:1.8; color:#cc55ff; transparent:true; opacity:0.96"
       animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1600; loop:true">
     </a-sphere>
-    <a-sphere radius="0.14"
+    <a-sphere radius="0.090"
       material="shader:flat; emissive:#7700cc; emissiveIntensity:0.5; color:#aa44ee; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:1800; loop:true">
     </a-sphere>
@@ -424,12 +425,12 @@ body { background:#000; overflow:hidden; }
   ══════════════════════════════════════════════════ -->
 
   <!-- rorb0: lower shelf left -->
-  <a-entity id="rorb0" class="red-orb" visible="false" position="-0.7 1.02 -0.78">
-    <a-sphere radius="0.078"
+  <a-entity id="rorb0" class="red-orb" visible="false" position="-0.40 1.02 -0.52">
+    <a-sphere radius="0.050"
       material="shader:flat; emissive:#cc1100; emissiveIntensity:2.0; color:#ff4433; transparent:true; opacity:0.96"
       animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1450; loop:true">
     </a-sphere>
-    <a-sphere radius="0.14"
+    <a-sphere radius="0.090"
       material="shader:flat; emissive:#aa0000; emissiveIntensity:0.5; color:#ee2211; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2300; loop:true">
     </a-sphere>
@@ -442,12 +443,12 @@ body { background:#000; overflow:hidden; }
   </a-entity>
 
   <!-- rorb1: lower shelf center -->
-  <a-entity id="rorb1" class="red-orb" visible="false" position="0.2 0.95 -0.76">
-    <a-sphere radius="0.078"
+  <a-entity id="rorb1" class="red-orb" visible="false" position="0.12 0.95 -0.52">
+    <a-sphere radius="0.050"
       material="shader:flat; emissive:#cc1100; emissiveIntensity:2.0; color:#ff4433; transparent:true; opacity:0.96"
       animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1250; loop:true">
     </a-sphere>
-    <a-sphere radius="0.14"
+    <a-sphere radius="0.090"
       material="shader:flat; emissive:#aa0000; emissiveIntensity:0.5; color:#ee2211; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:2000; loop:true">
     </a-sphere>
@@ -460,12 +461,12 @@ body { background:#000; overflow:hidden; }
   </a-entity>
 
   <!-- rorb2: lower shelf right -->
-  <a-entity id="rorb2" class="red-orb" visible="false" position="1.0 1.08 -0.80">
-    <a-sphere radius="0.078"
+  <a-entity id="rorb2" class="red-orb" visible="false" position="0.58 1.05 -0.55">
+    <a-sphere radius="0.050"
       material="shader:flat; emissive:#cc1100; emissiveIntensity:2.0; color:#ff4433; transparent:true; opacity:0.96"
       animation="property:scale; from:0.82 0.82 0.82; to:1.2 1.2 1.2; dir:alternate; dur:1550; loop:true">
     </a-sphere>
-    <a-sphere radius="0.14"
+    <a-sphere radius="0.090"
       material="shader:flat; emissive:#aa0000; emissiveIntensity:0.5; color:#ee2211; transparent:true; opacity:0.18"
       animation="property:scale; from:0.78 0.78 0.78; to:1.28 1.28 1.28; dir:alternate; dur:1900; loop:true">
     </a-sphere>
@@ -482,34 +483,34 @@ body { background:#000; overflow:hidden; }
        Shown during act3 so user knows where to reach.
        Yellow = upper (排球), Blue = middle (JOJO), Red = lower (天下)
   ══════════════════════════════════════════════════ -->
-  <a-entity id="guide-yellow" visible="false" position="0.08 1.92 -0.85">
-    <a-sphere radius="0.055"
+  <a-entity id="guide-yellow" visible="false" position="0.08 1.88 -0.55">
+    <a-sphere radius="0.040"
       material="shader:flat; emissive:#ffee44; emissiveIntensity:1.2; color:#ffee44; transparent:true; opacity:0.55"
       animation="property:material.opacity; from:0.35; to:0.7; dir:alternate; dur:1800; loop:true">
     </a-sphere>
-    <a-sphere radius="0.11"
+    <a-sphere radius="0.080"
       material="shader:flat; emissive:#ddcc00; emissiveIntensity:0.4; color:#ffee44; transparent:true; opacity:0.18"
       animation="property:material.opacity; from:0.1; to:0.28; dir:alternate; dur:2200; loop:true">
     </a-sphere>
   </a-entity>
 
-  <a-entity id="guide-blue" visible="false" position="0.08 1.45 -0.85">
-    <a-sphere radius="0.055"
+  <a-entity id="guide-blue" visible="false" position="0.08 1.45 -0.55">
+    <a-sphere radius="0.040"
       material="shader:flat; emissive:#cc55ff; emissiveIntensity:1.2; color:#cc55ff; transparent:true; opacity:0.55"
       animation="property:material.opacity; from:0.35; to:0.7; dir:alternate; dur:2000; loop:true; delay:400">
     </a-sphere>
-    <a-sphere radius="0.11"
+    <a-sphere radius="0.080"
       material="shader:flat; emissive:#9911ee; emissiveIntensity:0.4; color:#cc55ff; transparent:true; opacity:0.18"
       animation="property:material.opacity; from:0.1; to:0.28; dir:alternate; dur:2400; loop:true; delay:400">
     </a-sphere>
   </a-entity>
 
-  <a-entity id="guide-red" visible="false" position="0.08 1.02 -0.85">
-    <a-sphere radius="0.055"
+  <a-entity id="guide-red" visible="false" position="0.08 1.02 -0.55">
+    <a-sphere radius="0.040"
       material="shader:flat; emissive:#ff4433; emissiveIntensity:1.2; color:#ff4433; transparent:true; opacity:0.55"
       animation="property:material.opacity; from:0.35; to:0.7; dir:alternate; dur:1600; loop:true; delay:800">
     </a-sphere>
-    <a-sphere radius="0.11"
+    <a-sphere radius="0.080"
       material="shader:flat; emissive:#cc1100; emissiveIntensity:0.4; color:#ff4433; transparent:true; opacity:0.18"
       animation="property:material.opacity; from:0.1; to:0.28; dir:alternate; dur:2000; loop:true; delay:800">
     </a-sphere>
