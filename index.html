@@ -629,6 +629,7 @@ const SCRIPT = {
     { spkr:'w', name:'Wanderer', txt:'Extend your hand toward any glow\nand let the memory come to you.', dur:5500 },
   ],
   act4: [
+    { spkr:'w', name:'Wanderer', txt:'All three shelves, touched at last.\nYellow… purple… red.', dur:5500 },
     { spkr:'g', name:'Guardian', txt:'You reached into all three shelves.',                  dur:5500 },
     { spkr:'w', name:'Wanderer', txt:'…Thank you.\nSometimes even we forget what we keep.',           dur:5500 },
     { spkr:'g', name:'Guardian', txt:'Every worn spine, every crease in a page —\nthose are the real stories.', dur:6000 },
@@ -664,7 +665,7 @@ const ZONES = {
     orbs: [
       {
         before: { spkr:'w', name:'Wanderer', txt:'The middle shelf… JoJo\'s Bizarre Adventure.\nThe cover is newer than the others.', dur:5500 },
-        after:  { spkr:'w', name:'Wanderer', txt:'A replacement copy.\nThe first one was loved to pieces.', dur:5000 }
+        after:  { spkr:'w', name:'Wanderer', txt:'The cover feels slightly stiffer than the others.\nThis one hasn\'t been opened quite as many times.', dur:5000 }
       },
       {
         before: { spkr:'w', name:'Wanderer', txt:'This volume smells faintly different.\nI think it travelled here from somewhere else.', dur:5500 },
@@ -689,9 +690,7 @@ const ZONES = {
       },
       {
         before: { spkr:'g', name:'Guardian', txt:'The last red memory.\nThis one is slightly dusty — the furthest volume out.', dur:5500 },
-        after:  { spkr:'g', name:'Guardian', txt:'Not yet reached.\nBut you just did.', dur:4500,
-          followup: { spkr:'w', name:'Wanderer', txt:'All three shelves, touched at last.\nYellow… purple… red.', dur:5500 }
-        }
+        after:  { spkr:'g', name:'Guardian', txt:'Not yet reached.\nBut you just did.', dur:4500 }
       },
     ]
   }
