@@ -1241,8 +1241,8 @@ function onTick() {
   }
 }
 
-const HAND_COLLECT_DIST = 0.40;   // 40cm — hand tip / controller within this triggers grab (was 25cm)
-const HAND_FEEDBACK_DIST = 0.70;  // start visual highlight when hand within 70cm (was 55cm)
+const HAND_COLLECT_DIST = 0.20;   // 20cm — precise touch required to avoid accidental triggers
+const HAND_FEEDBACK_DIST = 0.50;  // start visual highlight when hand within 50cm
 
 function tickProximity(camObj) {
   const orb = collectType === 'purple' ? D.porbs[collectIdx]
