@@ -1088,20 +1088,20 @@ async function activateZone(zone) {
 
   zoneBusy = true;
 
-  // ── FIRST ORB OF THIS ZONE: lock in the zone, hide the other two shelves ──
+  // ── FIRST ORB OF THIS ZONE: lock in the zone, hide ALL shelves immediately ──
   if (activeZone === null) {
     activeZone = zone;
-    const others = ['yellow', 'blue', 'red'].filter(z => z !== zone);
-    others.forEach(z => {
-      const el = z === 'yellow' ? D.guideYellow : z === 'blue' ? D.guideBlue : D.guideRed;
-      el.setAttribute('visible', false);
-    });
+    // Hide ALL guide glows at once so no "three-row flash" occurs
+    D.guideYellow.setAttribute('visible', false);
+    D.guideBlue.setAttribute('visible', false);
+    D.guideRed.setAttribute('visible', false);
     const shelfNames = { yellow: '🟡 上排·排球少年', blue: '🟣 中排·JOJO', red: '🔴 下排·王者天下' };
     D.hint.textContent = `${shelfNames[zone]} — 专注收集这一排的全部记忆`;
     await sleep(600);
   }
 
-  // Hide guide glow for this zone while active
+  // Ensure guide glow for this zone is hidden while active
+  // (already hidden above on first entry; re-hides after between-orb restore)
   const guideEl = zone === 'yellow' ? D.guideYellow
                 : zone === 'blue'   ? D.guideBlue
                 :                     D.guideRed;
@@ -1153,9 +1153,12 @@ async function activateZone(zone) {
   zoneProgress[zone]++;
   totalCollected++;
 
-  // Restore guide glow if zone not yet finished
+  // Between orbs within the same zone: do NOT restore the guide glow.
+  // The user is already committed to this row; zone detection will
+  // automatically re-trigger the next orb when the hand returns.
+  // Showing the guide here causes an unexpected one-row flash.
   if (zoneProgress[zone] < 3) {
-    guideEl.setAttribute('visible', true);
+    // guide stays hidden — intentional
   } else {
     // ── ZONE COMPLETE: unlock so user can freely choose another shelf ──
     activeZone = null;
