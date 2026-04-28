@@ -1082,16 +1082,17 @@ function zoneToCollectType(zone) {
 }
 
 // ── Zone activation — called when hand detected near a zone ──
+// Loops through ALL remaining orbs in the zone automatically,
+// so no re-detection is needed between orbs.
 async function activateZone(zone) {
   if (zoneBusy || phase !== 'act3') return;
   if (zoneProgress[zone] >= 3) return;
 
   zoneBusy = true;
 
-  // ── FIRST ORB OF THIS ZONE: lock in the zone, hide ALL shelves immediately ──
+  // ── FIRST ENTRY: lock in the zone, hide ALL shelf guide glows ──
   if (activeZone === null) {
     activeZone = zone;
-    // Hide ALL guide glows at once so no "three-row flash" occurs
     D.guideYellow.setAttribute('visible', false);
     D.guideBlue.setAttribute('visible', false);
     D.guideRed.setAttribute('visible', false);
@@ -1100,94 +1101,86 @@ async function activateZone(zone) {
     await sleep(600);
   }
 
-  // Ensure guide glow for this zone is hidden while active
-  // (already hidden above on first entry; re-hides after between-orb restore)
+  // Ensure this zone's guide glow stays hidden while active
   const guideEl = zone === 'yellow' ? D.guideYellow
                 : zone === 'blue'   ? D.guideBlue
                 :                     D.guideRed;
   guideEl.setAttribute('visible', false);
 
-  const orbIdx  = zoneProgress[zone];
-  const orbData = ZONES[zone].orbs[orbIdx];
-
-  // Guardian/Wanderer speaks first — describing the physical book
-  await playLine(orbData.before);
-
-  // Orb floats out from the shelf
-  const orbEl = getOrbEl(zone, orbIdx);
-  orbEl.setAttribute('visible', true);
-
-  // Set up collection
-  collectType = zoneToCollectType(zone);
-  collectIdx  = orbIdx;
-  waitCollect = true;
-
   const emoji = zone === 'yellow' ? '🟡' : zone === 'blue' ? '🟣' : '🔴';
-  D.hint.textContent = `${emoji} Reach into the glow to collect the memory`;
 
-  await new Promise(res => { onCollect = res; });
-  waitCollect = false;
+  // ── INNER LOOP: collect all remaining orbs in this zone sequentially ──
+  // This avoids relying on tickZoneDetection to re-fire between orbs,
+  // which fails in desktop mode (no hands) and is fragile in AR.
+  while (zoneProgress[zone] < 3) {
+    const orbIdx  = zoneProgress[zone];
+    const orbData = ZONES[zone].orbs[orbIdx];
 
-  // Flash + hide orb
-  const flashPos = new THREE.Vector3();
-  orbEl.object3D.getWorldPosition(flashPos);
-  orbEl.object3D.scale.set(1, 1, 1);   // reset proximity-feedback scale
-  orbProxFeedbackT = 0;
-  orbEl.setAttribute('visible', false);
+    // Guardian/Wanderer describes the physical book
+    await playLine(orbData.before);
 
-  if (zone === 'yellow') purpleCount++;
-  else if (zone === 'blue') blueCount++;
-  else redCount++;
-  updateCounter();
+    // Orb appears from the shelf
+    const orbEl = getOrbEl(zone, orbIdx);
+    orbEl.setAttribute('visible', true);
 
-  spawnCollectFlash(collectType, flashPos);
-  await sleep(500);
+    // Set up collection gate
+    collectType = zoneToCollectType(zone);
+    collectIdx  = orbIdx;
+    waitCollect = true;
+    D.hint.textContent = `${emoji} Reach into the glow to collect the memory`;
 
-  // After-line: reflection on what was just felt
-  await playLine(orbData.after);
-  if (orbData.after.followup) {
-    await sleep(700);
-    await playLine(orbData.after.followup);
+    await new Promise(res => { onCollect = res; });
+    waitCollect = false;
+
+    // Flash + hide orb
+    const flashPos = new THREE.Vector3();
+    orbEl.object3D.getWorldPosition(flashPos);
+    orbEl.object3D.scale.set(1, 1, 1);   // reset proximity-feedback scale
+    orbProxFeedbackT = 0;
+    orbEl.setAttribute('visible', false);
+
+    if (zone === 'yellow') purpleCount++;
+    else if (zone === 'blue') blueCount++;
+    else redCount++;
+    updateCounter();
+
+    spawnCollectFlash(collectType, flashPos);
+    await sleep(500);
+
+    // Reflection line after collection
+    await playLine(orbData.after);
+    if (orbData.after.followup) {
+      await sleep(700);
+      await playLine(orbData.after.followup);
+    }
+
+    zoneProgress[zone]++;
+    totalCollected++;
+
+    // Show progress hint between orbs (if more remain in this zone)
+    if (zoneProgress[zone] < 3) {
+      D.hint.textContent = `${emoji} 还剩 ${3 - zoneProgress[zone]} 个记忆…`;
+      await sleep(800);
+    }
   }
 
-  zoneProgress[zone]++;
-  totalCollected++;
-
-  // Between orbs within the same zone: do NOT restore the guide glow.
-  // The user is already committed to this row; zone detection will
-  // automatically re-trigger the next orb when the hand returns.
-  // Showing the guide here causes an unexpected one-row flash.
-  if (zoneProgress[zone] < 3) {
-    // guide stays hidden — intentional
-  } else {
-    // ── ZONE COMPLETE: unlock so user can freely choose another shelf ──
-    activeZone = null;
-    const completedCount = Object.values(zoneProgress).filter(v => v >= 3).length;
-    if (completedCount < 3) {
-      // Show guide glows for any remaining incomplete shelves
-      const remaining = ['yellow', 'blue', 'red'].filter(z => zoneProgress[z] < 3);
-      remaining.forEach(z => {
-        const el = z === 'yellow' ? D.guideYellow : z === 'blue' ? D.guideBlue : D.guideRed;
-        el.setAttribute('visible', true);
-      });
-      const leftCount = 3 - completedCount;
-      D.hint.textContent = `✦ 还有 ${leftCount} 排书架等待探索 — 伸手选择下一排`;
-      await sleep(400);
-    }
+  // ── ZONE COMPLETE: unlock so user can freely choose another shelf ──
+  activeZone = null;
+  const completedCount = Object.values(zoneProgress).filter(v => v >= 3).length;
+  if (completedCount < 3) {
+    const remaining = ['yellow', 'blue', 'red'].filter(z => zoneProgress[z] < 3);
+    remaining.forEach(z => {
+      const el = z === 'yellow' ? D.guideYellow : z === 'blue' ? D.guideBlue : D.guideRed;
+      el.setAttribute('visible', true);
+    });
+    const leftCount = 3 - completedCount;
+    D.hint.textContent = `✦ 还有 ${leftCount} 排书架等待探索 — 伸手选择下一排`;
+    await sleep(400);
   }
 
   zoneBusy = false;
 
-  // Update hint (only if still freely choosing — zone unlock sets its own hint)
-  if (activeZone !== null) {
-    const remaining = 9 - totalCollected;
-    if (remaining > 0) {
-      const emoji = activeZone === 'yellow' ? '🟡' : activeZone === 'blue' ? '🟣' : '🔴';
-      D.hint.textContent = `${emoji} 还剩 ${zoneProgress[activeZone] === 3 ? 0 : 3 - zoneProgress[activeZone]} 个记忆 — 继续伸手收集`;
-    }
-  }
-
-  // All collected → trigger act4
+  // All 9 collected → trigger act4
   if (totalCollected >= 9 && window._act3Done) {
     const cb = window._act3Done;
     window._act3Done = null;
