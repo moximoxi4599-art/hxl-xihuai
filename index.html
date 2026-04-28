@@ -716,6 +716,7 @@ let redCount = 0;
 
 // Zone-based state
 let zoneBusy = false;
+let activeZone = null;   // which shelf the user is currently focused on (null = free choice)
 let zoneProgress = { yellow: 0, blue: 0, red: 0 };
 let totalCollected = 0;
 // Y-height bands for zone detection (world space, standing user)
@@ -1059,7 +1060,7 @@ async function act3_collect() {
   D.guideBlue.setAttribute('visible', true);
   D.guideRed.setAttribute('visible', true);
 
-  D.hint.textContent = '🟡 Upper shelf · 🟣 Middle shelf · 🔴 Lower shelf — reach toward any glow';
+  D.hint.textContent = '✦ 伸手选择一排书架，专注收集这一排的记忆';
 
   // Wait until all 9 orbs collected (zone detection runs in onTick)
   await new Promise(res => { window._act3Done = res; });
@@ -1086,6 +1087,19 @@ async function activateZone(zone) {
   if (zoneProgress[zone] >= 3) return;
 
   zoneBusy = true;
+
+  // ── FIRST ORB OF THIS ZONE: lock in the zone, hide the other two shelves ──
+  if (activeZone === null) {
+    activeZone = zone;
+    const others = ['yellow', 'blue', 'red'].filter(z => z !== zone);
+    others.forEach(z => {
+      const el = z === 'yellow' ? D.guideYellow : z === 'blue' ? D.guideBlue : D.guideRed;
+      el.setAttribute('visible', false);
+    });
+    const shelfNames = { yellow: '🟡 上排·排球少年', blue: '🟣 中排·JOJO', red: '🔴 下排·王者天下' };
+    D.hint.textContent = `${shelfNames[zone]} — 专注收集这一排的全部记忆`;
+    await sleep(600);
+  }
 
   // Hide guide glow for this zone while active
   const guideEl = zone === 'yellow' ? D.guideYellow
@@ -1142,14 +1156,32 @@ async function activateZone(zone) {
   // Restore guide glow if zone not yet finished
   if (zoneProgress[zone] < 3) {
     guideEl.setAttribute('visible', true);
+  } else {
+    // ── ZONE COMPLETE: unlock so user can freely choose another shelf ──
+    activeZone = null;
+    const completedCount = Object.values(zoneProgress).filter(v => v >= 3).length;
+    if (completedCount < 3) {
+      // Show guide glows for any remaining incomplete shelves
+      const remaining = ['yellow', 'blue', 'red'].filter(z => zoneProgress[z] < 3);
+      remaining.forEach(z => {
+        const el = z === 'yellow' ? D.guideYellow : z === 'blue' ? D.guideBlue : D.guideRed;
+        el.setAttribute('visible', true);
+      });
+      const leftCount = 3 - completedCount;
+      D.hint.textContent = `✦ 还有 ${leftCount} 排书架等待探索 — 伸手选择下一排`;
+      await sleep(400);
+    }
   }
 
   zoneBusy = false;
 
-  // Update hint
-  const remaining = 9 - totalCollected;
-  if (remaining > 0) {
-    D.hint.textContent = `${remaining} memories remain — reach toward any glow`;
+  // Update hint (only if still freely choosing — zone unlock sets its own hint)
+  if (activeZone !== null) {
+    const remaining = 9 - totalCollected;
+    if (remaining > 0) {
+      const emoji = activeZone === 'yellow' ? '🟡' : activeZone === 'blue' ? '🟣' : '🔴';
+      D.hint.textContent = `${emoji} 还剩 ${zoneProgress[activeZone] === 3 ? 0 : 3 - zoneProgress[activeZone]} 个记忆 — 继续伸手收集`;
+    }
   }
 
   // All collected → trigger act4
@@ -1278,6 +1310,8 @@ function tickZoneDetection() {
   }
   if (!detectedZone) return;
   if (zoneProgress[detectedZone] >= 3) return; // zone complete
+  // If a zone is already active (locked in), ignore other shelves
+  if (activeZone !== null && detectedZone !== activeZone) return;
 
   // Activate!
   activateZone(detectedZone);
