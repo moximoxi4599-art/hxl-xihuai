@@ -721,7 +721,8 @@ let activeZone = null;   // which shelf the user is currently focused on (null =
 let zoneProgress = { yellow: 0, blue: 0, red: 0 };
 let totalCollected = 0;
 // Y-height bands for zone detection (world space, standing user)
-const ZONE_BANDS = { yellow: [1.65, 2.2], blue: [1.2, 1.65], red: [0.7, 1.2] };
+// Wider bands + lower floor to be forgiving of different user heights
+const ZONE_BANDS = { yellow: [1.45, 2.6], blue: [0.85, 1.6], red: [0.35, 1.1] };
 
 // Visual feedback state — pulse strength of the active orb based on
 // how close the nearest tracked input (hand tip / controller) is to it.
@@ -1061,7 +1062,7 @@ async function act3_collect() {
   D.guideBlue.setAttribute('visible', true);
   D.guideRed.setAttribute('visible', true);
 
-  D.hint.textContent = '✦ 伸手选择一排书架，专注收集这一排的记忆';
+  D.hint.textContent = '✦ 伸手触碰书架前的光粒来选择书架';
 
   // Wait until all 9 orbs collected (zone detection runs in onTick)
   await new Promise(res => { window._act3Done = res; });
@@ -1240,8 +1241,8 @@ function onTick() {
   }
 }
 
-const HAND_COLLECT_DIST = 0.25;   // 25cm — hand tip / controller within this triggers grab
-const HAND_FEEDBACK_DIST = 0.55;  // start visual highlight when hand within 55cm
+const HAND_COLLECT_DIST = 0.40;   // 40cm — hand tip / controller within this triggers grab (was 25cm)
+const HAND_FEEDBACK_DIST = 0.70;  // start visual highlight when hand within 70cm (was 55cm)
 
 function tickProximity(camObj) {
   const orb = collectType === 'purple' ? D.porbs[collectIdx]
@@ -1266,9 +1267,11 @@ function tickProximity(camObj) {
   const emoji = collectType === 'purple' ? '🟡' : collectType === 'blue' ? '🟣' : '🔴';
   const label = collectType === 'purple' ? '排球少年' : collectType === 'blue' ? 'JOJO' : '王者天下';
   if (D.hint && _inputBuf.length > 0) {
-    D.hint.textContent = `${emoji} ${label} — reach closer: ${(bestDist * 100).toFixed(0)} cm`;
+    const distCm = (bestDist * 100).toFixed(0);
+    const bar = bestDist < HAND_COLLECT_DIST ? '✅ 触发中！' : `距离 ${distCm} cm（需 <${(HAND_COLLECT_DIST*100).toFixed(0)}）`;
+    D.hint.textContent = `${emoji} ${label} — ${bar}`;
   } else if (D.hint) {
-    D.hint.textContent = `${emoji} ${label} — show your hands to the headset`;
+    D.hint.textContent = `${emoji} ${label} — 未检测到手部，请确保双手在 Quest 视野内`;
   }
 
   // ── Trigger collection on touch ───────────────────────────────
@@ -1277,41 +1280,55 @@ function tickProximity(camObj) {
   }
 }
 
-// ── Zone detection: which shelf is the user reaching toward? ──
-// Fires activateZone() when a hand moves close to a shelf zone.
+// ── Zone detection: user touches a guide glow orb to select a shelf ──
+// Same proximity logic as orb collection — no Y-band or Z-threshold needed.
 let _lastZoneCheck = 0;
 function tickZoneDetection() {
   const now = Date.now();
-  // Throttle to once per 300ms — we don't need frame-rate precision here
-  if (now - _lastZoneCheck < 300) return;
+  if (now - _lastZoneCheck < 60) return;
   _lastZoneCheck = now;
 
   gatherInputPositions(_inputBuf);
-  if (_inputBuf.length === 0) return;
+  if (_inputBuf.length === 0) {
+    if (D.hint) D.hint.textContent = '✦ 伸手触碰书架前的光粒来选择书架';
+    return;
+  }
 
-  // Find a hand that is extended toward the shelf (z < -0.35)
-  // and reasonably close (within 0.7m of shelf face at z ≈ -0.85)
-  let reachY = null;
-  for (const p of _inputBuf) {
-    if (p.z < -0.35 && p.z > -1.5) {
-      reachY = p.y;
-      break;
+  // Check each guide glow for proximity
+  const guides = [
+    { zone: 'yellow', el: D.guideYellow },
+    { zone: 'blue',   el: D.guideBlue   },
+    { zone: 'red',    el: D.guideRed    },
+  ];
+
+  let closestZone = null;
+  let closestDist = Infinity;
+
+  for (const { zone, el } of guides) {
+    if (!el || !el.getAttribute('visible')) continue;
+    if (zoneProgress[zone] >= 3) continue;
+    if (activeZone !== null && zone !== activeZone) continue;
+
+    el.object3D.getWorldPosition(_v3b);
+    for (const p of _inputBuf) {
+      const d = p.distanceTo(_v3b);
+      if (d < closestDist) { closestDist = d; closestZone = zone; }
     }
   }
-  if (reachY === null) return;
 
-  // Map Y to a zone
-  let detectedZone = null;
-  for (const [zone, [lo, hi]] of Object.entries(ZONE_BANDS)) {
-    if (reachY >= lo && reachY < hi) { detectedZone = zone; break; }
+  // Update hint with closest distance so user knows how close they are
+  if (closestZone) {
+    const emoji = closestZone === 'yellow' ? '🟡' : closestZone === 'blue' ? '🟣' : '🔴';
+    const name  = closestZone === 'yellow' ? '排球少年' : closestZone === 'blue' ? 'JOJO' : '王者天下';
+    if (closestDist < HAND_COLLECT_DIST) {
+      if (D.hint) D.hint.textContent = `${emoji} 触碰 ${name}！`;
+      activateZone(closestZone);
+    } else {
+      if (D.hint) D.hint.textContent = `${emoji} ${name} — 距离 ${(closestDist * 100).toFixed(0)} cm（需 <${(HAND_COLLECT_DIST * 100).toFixed(0)}）`;
+    }
+  } else {
+    if (D.hint) D.hint.textContent = '✦ 伸手触碰书架前的光粒来选择书架';
   }
-  if (!detectedZone) return;
-  if (zoneProgress[detectedZone] >= 3) return; // zone complete
-  // If a zone is already active (locked in), ignore other shelves
-  if (activeZone !== null && detectedZone !== activeZone) return;
-
-  // Activate!
-  activateZone(detectedZone);
 }
 // Uses the orb entity's first child <a-sphere> (the inner core)
 // scale as a quick visual "magnet" cue.
